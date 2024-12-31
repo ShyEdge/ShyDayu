@@ -14,6 +14,7 @@ from . import schedule_startup_policy
 from . import schedule_policy_extraction
 from . import task_queue
 from . import schedule_services_allocate
+from . import schedule_devices_allocate
 
 
 

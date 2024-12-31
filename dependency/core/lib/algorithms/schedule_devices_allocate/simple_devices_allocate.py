@@ -5,7 +5,7 @@ from core.lib.common import ClassFactory, ClassType
 from .base_devices_allocate import BaseDevicesAllocate
 
 
-@ClassFactory.register(ClassType.SCH_DEVICES, alias='simple')
+@ClassFactory.register(ClassType.SCH_DEVICES_ALLOCATE, alias='simple')
 class SimpleDevicesAllocate(BaseDevicesAllocate ,abc.ABC):
 
     def __init__(self):

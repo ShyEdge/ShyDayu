@@ -12,8 +12,8 @@ class SimpleDevicesAllocate(BaseDevicesAllocate ,abc.ABC):
         pass
 
     def __call__(self, device_info):
-        return ["device_1","device_2"]
-        #return list(device_info.keys())
+        #return ["device_1","device_2"]
+        return list(device_info.keys())
     
 
     #def generate_random_indexes(self,allo_num_of_devices,num_of_devices):

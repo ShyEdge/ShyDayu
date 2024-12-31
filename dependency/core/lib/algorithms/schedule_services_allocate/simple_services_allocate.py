@@ -2,7 +2,7 @@ import abc
 import random
 #from core.lib.algorithms.schedule_devices_allocate import SimpleDevicesAllocate
 
-from core.lib.common import ClassFactory, ClassType
+from core.lib.common import ClassFactory, ClassType, Context
 from .base_services_allocate import BaseServicesAllocate
 
 
@@ -11,23 +11,24 @@ from .base_services_allocate import BaseServicesAllocate
 class SimpleServicesAllocate(BaseServicesAllocate, abc.ABC):
 
     def __init__(self):
-        pass
+        self.devices_allocate = Context.get_algorithm("SCH_DEVICES_ALLOCATE")
 
     def __call__(self, pipe_segs, device_info, pipeline):
 
-        distributed_pipeline = []
-        
+        device_ids=self.devices_allocate(device_info)
+          
         segs = [0] + pipe_segs + [len(pipeline)] 
+
+        distributed_pipeline = []
+
         for i in range(len(segs) - 1):
             start = segs[i]  
             end = segs[i + 1]  
 
-            if(start == end):
+            if start == end:
                 continue
-            
-            device_key=f"device_{i+1}"
 
-            execute_device = device_info[device_key]
+            execute_device = device_info[device_ids[i]]
 
             for p in pipeline[start:end]:
                 distributed_pipeline.append({**p, 'execute_device': execute_device})

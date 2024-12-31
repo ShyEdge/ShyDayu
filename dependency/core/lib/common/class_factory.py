@@ -27,7 +27,7 @@ class ClassType:
     SCH_SCENARIO = 'scheduler_scenario_extraction'
     SCH_POLICY = 'scheduler_policy_extraction'
     SCH_SERVICES_ALLOCATE = 'scheduler_services_allocate'
-    #SCH_DEVICES_ALLOCATE = 'scheduler_devices_allocate'
+    SCH_DEVICES_ALLOCATE = 'scheduler_devices_allocate'
 
     PROCESSOR = 'processor'
     PRO_DETECTOR = 'processor_detector'

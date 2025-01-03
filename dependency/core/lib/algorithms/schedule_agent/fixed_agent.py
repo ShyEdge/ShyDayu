@@ -18,15 +18,14 @@ class FixedAgent(BaseAgent, abc.ABC):
         if self.fixed_policy is None:
             return self.fixed_policy
 
-        print("INFO:",info)
 
         policy = self.fixed_policy.copy()
-        edge_device = info['device']
-        cloud_device = self.cloud_device
+        edge_device_1 = 'edge7'
+        edge_device_2 = 'edge5'
         pipe_seg = policy['pipeline']
         pipeline = info['pipeline']
-        pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
-                   [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+        pipeline = [{**p, 'execute_device': edge_device_1} for p in pipeline[:pipe_seg]] + \
+                   [{**p, 'execute_device': edge_device_2} for p in pipeline[pipe_seg:]]
 
         policy.update({'pipeline': pipeline})
         return policy

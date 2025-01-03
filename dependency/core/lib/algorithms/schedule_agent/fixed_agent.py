@@ -18,6 +18,8 @@ class FixedAgent(BaseAgent, abc.ABC):
         if self.fixed_policy is None:
             return self.fixed_policy
 
+        print("INFO:",info)
+
         policy = self.fixed_policy.copy()
         edge_device = info['device']
         cloud_device = self.cloud_device

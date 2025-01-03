@@ -1,6 +1,6 @@
-namespace: dayu
+namespace: shy-dayu
 log-level: DEBUG
-log-file-name:
+log-file-name: shy_log
 pod-permission:
   service-account: worker-admin
   cluster-role-binding: worker-admin-binding
@@ -14,7 +14,7 @@ default-image-meta:
 default-file-mount-prefix: "/data/dayu-files"
 datasource:
   use-simulation: true
-  node: edgex1
+  node: edge7
   data-root: "/data/datasource/"
   play-mode: non-cycle
 scheduler-policies:

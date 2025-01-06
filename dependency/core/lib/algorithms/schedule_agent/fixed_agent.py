@@ -24,7 +24,7 @@ class FixedAgent(BaseAgent, abc.ABC):
         cloud_device = self.cloud_device
 
         device_info={
-            "device_1": edge_device,
+            "device_1": "edge5",
             "device_2": cloud_device,
         }
 
@@ -33,6 +33,11 @@ class FixedAgent(BaseAgent, abc.ABC):
         pipeline=self.services_allocate(pipe_segs, device_info, pipeline)
 
         policy.update({'pipeline': pipeline})
+
+        print("-----------------------------------------------------------------------------------------------")
+        print("policy是: ",policy)
+        print("-----------------------------------------------------------------------------------------------")
+
         return policy
 
     def run(self):

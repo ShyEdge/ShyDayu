@@ -1,6 +1,6 @@
 position: cloud
 pod-template:
-  image: scheduler
+  image: scheduler:shy-test
   imagePullPolicy: IfNotPresent
   env:
     - name: SCH_CONFIG_NAME

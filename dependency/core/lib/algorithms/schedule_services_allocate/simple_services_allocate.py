@@ -18,6 +18,7 @@ class SimpleServicesAllocate(BaseServicesAllocate, abc.ABC):
         device_ids=self.devices_allocate(device_info)
           
         segs = [0] + pipe_segs + [len(pipeline)] 
+        segs = list(dict.fromkeys(segs))
 
         distributed_pipeline = []
 
@@ -25,13 +26,7 @@ class SimpleServicesAllocate(BaseServicesAllocate, abc.ABC):
             start = segs[i]  
             end = segs[i + 1]  
 
-            if start == end:
-                continue
-
-            execute_device = device_info[device_ids[i]]
-
-            if(i == (len(segs)-2)):
-                execute_device= random.choice([execute_device, device_info['device_cloud']])   
+            execute_device = device_info[device_ids[i]]   
 
             for p in pipeline[start:end]:
                 distributed_pipeline.append({**p, 'execute_device': execute_device})

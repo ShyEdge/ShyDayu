@@ -30,7 +30,7 @@ class SimpleServicesAllocate(BaseServicesAllocate, abc.ABC):
 
             execute_device = device_info[device_ids[i]]
 
-            if(i == (len(segs)-1)):
+            if(i == (len(segs)-2)):
                 execute_device= random.choice([execute_device, device_info['device_cloud']])   
 
             for p in pipeline[start:end]:

@@ -26,7 +26,7 @@ class FixedAgent(BaseAgent, abc.ABC):
         device_info={
             "device_1": "edge7",
             "device_2": "edge5",
-            "device_3": cloud_device
+            "device_cloud": cloud_device
         }
 
         pipe_segs= policy['pipeline']

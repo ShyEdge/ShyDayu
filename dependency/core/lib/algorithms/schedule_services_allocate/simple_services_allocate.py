@@ -14,11 +14,11 @@ class SimpleServicesAllocate(BaseServicesAllocate, abc.ABC):
         self.devices_allocate = Context.get_algorithm("SCH_DEVICES_ALLOCATE")
 
     def __call__(self, pipe_segs, device_info, pipeline):
-
-        device_ids=self.devices_allocate(device_info)
           
         segs = [0] + pipe_segs + [len(pipeline)] 
         segs = list(dict.fromkeys(segs))
+
+        device_ids=self.devices_allocate(device_info, segs)
 
         distributed_pipeline = []
 

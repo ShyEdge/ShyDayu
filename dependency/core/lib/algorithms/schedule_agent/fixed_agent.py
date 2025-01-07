@@ -20,12 +20,13 @@ class FixedAgent(BaseAgent, abc.ABC):
             return self.fixed_policy
 
         policy = self.fixed_policy.copy()
-        edge_device = info['device']
+        #edge_device = info['device']
         cloud_device = self.cloud_device
 
         device_info={
-            "device_1": "edge5",
-            "device_2": cloud_device,
+            "device_1": "edge7",
+            "device_2": "edge5",
+            "device_3": cloud_device
         }
 
         pipe_segs= policy['pipeline']

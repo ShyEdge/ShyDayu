@@ -41,6 +41,7 @@ class Scheduler:
         source_id = info['source_id']
         agent = self.schedule_table[source_id]
         
+        LOGGER.info(f'info内容是 {info}')
         LOGGER.info(f'schedule_table内容是 {self.schedule_table}')
         LOGGER.info(f'resource_table内容是 {self.resource_table}')
 

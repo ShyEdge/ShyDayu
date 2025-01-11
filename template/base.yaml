@@ -14,7 +14,7 @@ default-image-meta:
 default-file-mount-prefix: "/data/dayu-files"
 datasource:
   use-simulation: true
-  node: edge7
+  node: edgex1
   data-root: "/data/datasource/"
   play-mode: non-cycle
 scheduler-policies:

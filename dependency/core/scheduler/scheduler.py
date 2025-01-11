@@ -45,6 +45,9 @@ class Scheduler:
         LOGGER.info(f'schedule_table内容是 {self.schedule_table}')
         LOGGER.info(f'resource_table内容是 {self.resource_table}')
 
+        #向info中增加resource的信息
+        info['resource_table']=self.resource_table
+        
         plan = agent.get_schedule_plan(info)
 
         if plan is None:

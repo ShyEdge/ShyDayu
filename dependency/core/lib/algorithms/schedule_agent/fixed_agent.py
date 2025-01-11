@@ -16,6 +16,9 @@ class FixedAgent(BaseAgent, abc.ABC):
         self.services_allocate = Context.get_algorithm('SCH_SERVICES_ALLOCATE')
 
     def get_schedule_plan(self, info):
+
+        print(f"fixedagent中的输入info是 {info}")    
+
         if self.fixed_policy is None:
             return self.fixed_policy
 
@@ -34,7 +37,7 @@ class FixedAgent(BaseAgent, abc.ABC):
         policy.update({'pipeline': pipeline})
 
         print("-----------------------------------------------------------------------------------------------")
-        print("policy是: ",policy)
+        print("fixedagent中的policy是: ",policy)
         print("-----------------------------------------------------------------------------------------------")
 
         return policy

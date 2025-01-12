@@ -1,0 +1,27 @@
+position: cloud
+pod-template:
+  image: scheduler:shy-test-loadbased
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: SCH_CONFIG_NAME
+      value: simple
+    - name: SCH_SCENARIO_NAME
+      value: simple
+    - name: SCH_STARTUP_NAME
+      value: fixed
+    - name: SCH_POLICY_NAME
+      value: simple
+    - name: SCH_AGENT_NAME
+      value: fixed
+    - name: SCH_SERVICES_ALLOCATE_NAME
+      value: loadbased
+    - name: SCH_DEVICES_ALLOCATE_NAME
+      value: loadbased 
+    - name: SCH_AGENT_PARAMETERS
+      value: "{'loadbased_policy': {'resolution': '720p','fps': 15,'encoding': 'mp4v','buffer_size': 4, 'device_info':{'device_1': 'edge7', 'device_2': 'edge8' }, 'Decision_Parameters': {'num_stage': 2, 'threshold_local': 40, 'threshold_other': 40} }}"
+port-open:
+  pos: cloud
+  port: 9000
+file-mount:
+  - pos: cloud
+    path: 'scheduler/fixed/'

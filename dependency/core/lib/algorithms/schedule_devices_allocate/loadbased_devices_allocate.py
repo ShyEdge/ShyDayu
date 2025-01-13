@@ -22,7 +22,7 @@ class LoadBasedDevicesAllocate(BaseDevicesAllocate ,abc.ABC):
         }
 
         selected_device = random.choice(list(other_device.keys()))
-        segs = [0]  + [len(pipeline)] 
+        segs = [0]
         index = 0
         device_id=['device_local']
         

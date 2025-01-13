@@ -24,11 +24,13 @@ class LoadBasedServicesAllocate(BaseServicesAllocate, abc.ABC):
             start = segs[i]  
             end = segs[i + 1]  
 
+            '''
             print(f"i的内容是:{i}")
             print(f"device_ids内容是{device_ids}")
             print(f"device_info的内容是{device_info}")
             print(f"device_ids[i]的内容是:{device_ids[i]}")
             print(f"device_info[device_ids[i]]的内容是{device_info[device_ids[i]]}")
+            '''
 
             execute_device = device_info[device_ids[i]]   
 

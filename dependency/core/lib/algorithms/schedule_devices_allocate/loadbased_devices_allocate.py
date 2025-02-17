@@ -31,7 +31,7 @@ class LoadBasedDevicesAllocate(BaseDevicesAllocate ,abc.ABC):
             return device_id, segs + [len(pipeline)]
 
         #从可用边缘设备中任选一个设备，边-边
-        elif (resource_table[other_device[selected_device]]['cpu'] < decision_para['threshold_other']):
+        elif (resource_table[other_device[selected_device]]['cpu'] < decision_para['threshold_other']):  #如果只有一个边缘设备则不适用，因为没有selected_device
             index = index + 1
             segs.append(index)
             device_id.append(selected_device)

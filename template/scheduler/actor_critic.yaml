@@ -1,0 +1,47 @@
+position: cloud
+pod-template:
+  image: scheduler:shy-test-ActorCritic
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: SCH_CONFIG_NAME
+      value: simple
+    - name: SCH_SCENARIO_NAME
+      value: simple
+    - name: SCH_STARTUP_NAME
+      value: fixed
+    - name: SCH_POLICY_NAME
+      value: simple
+    - name: SCH_AGENT_NAME
+      value: actorcritic
+    - name: SCH_SERVICES_ALLOCATE_NAME
+      value: actorcritic
+    - name: SCH_DEVICES_ALLOCATE_NAME
+      value: actorcritic
+    - name: SCH_AGENT_PARAMETERS
+      value: >-
+        {
+          "actorcritic_policy": {
+            "resolution": "720p",
+            "fps": 15,
+            "encoding": "mp4v",
+            "buffer_size": 4,
+            "device_info": {
+              "edge_1": "edge3",
+              "edge_2": "edge8"
+            },
+            "train_parameters": {
+              "actor_lr": 0.001,
+              "critic_lr": 0.01,
+              "num_episodes": 500,
+              "hidden_dim": 128,
+              "gamma": 0.98
+            }
+
+          }
+        }
+port-open:
+  pos: cloud
+  port: 9000
+file-mount:
+  - pos: cloud
+    path: scheduler/loadbased/

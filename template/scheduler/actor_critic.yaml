@@ -26,8 +26,8 @@ pod-template:
             "encoding": "mp4v",
             "buffer_size": 4,
             "device_info": {
-              "edge_1": "edge3",
-              "edge_2": "edge8"
+              "edge3": "edge3",
+              "edge8": "edge8"
             },
             "train_parameters": {
               "actor_lr": 0.001,

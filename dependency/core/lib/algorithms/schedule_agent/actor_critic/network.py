@@ -92,51 +92,61 @@ class CloudEdgeEnv(gym.Env):
         self.device_info = device_info
         self.device_info['cloud'] = cloud_device
         self.resource_table = None
+        self.device_list = list(self.device_info.keys())
+
+        self.selected_device = cloud_device
+
         
-        
-
-
-
         # 状态空间：负载
         self.observation_space = gym.spaces.Box(
             shape=(len(device_info),), dtype=np.float32 
         )
 
-        # 动作空间
+        # 动作空间，目前做的1阶段的
         self.action_space = gym.spaces.Discrete(len(device_info))
 
+    def reset(self, resource_table):
+        self.update_resource_table(resource_table)
+        new_state = self.extract_cpu_state()
+        return new_state
+    
 
-    def reset(self):
-        self.task_size = np.random.randint(0, 100)  # 任务大小
-        self.bandwidths = np.random.uniform(0.8 * self.base_bandwidths, 1.2 * self.base_bandwidths)  # 带宽波动
-        return self._get_state()
-
-    def _get_state(self):
-        return np.concatenate(([self.task_size], self.bandwidths[:self.num_edges]))
-
-    def step(self, action):
-        # 任务大小不变，使用 reset 里的 self.task_size
-        compute_time = self.task_size / self.compute_speeds[action]  # 计算时间
-
-        if action == 0:  # 任务分配给云端
-            transmission_time = 100 / self.bandwidths[0]  # 传输时间
-            delay = transmission_time + compute_time  # 总延迟
-            reward = -delay  # 惩罚延迟
-
-        else:  # 任务分配到某个边缘
-            edge_index = action - 1
-            transmission_time = 100 / self.bandwidths[edge_index + 1]
-            delay = transmission_time + compute_time
-            reward = -delay  # 惩罚延迟
+    def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息
         
-        self.task_count += 1
-        done = self.task_count >= self.max_tasks
-        if done:
-            self.task_count = 0
-        return self._get_state(), reward, done, {}
-  
+        self.selected_device = self.device_list[action]
+
+        
+
+
+
+
     def update_resource_table(self, resource_table):   
         self.resource_table = resource_table
+
+
+    def extract_cpu_state(self):
+        # 提取 cloud.kubeedge 的 CPU 负载
+        cloud_cpu = self.resource_table.get("cloud.kubeedge", {}).get("cpu", 0)
+
+        # 提取所有 edge 设备，并按 edge 编号排序
+        edge_cpus = []
+        for key, value in self.resource_table.items():
+            if key.startswith("edge"):
+                try:
+                    edge_num = int(key[4:])  # 提取 edge 设备编号
+                    edge_cpus.append((edge_num, value.get("cpu", 0)))
+                except ValueError:
+                    continue  # 跳过无法解析的 edge 设备名
+
+        # 按编号排序
+        edge_cpus.sort()
+
+        # 生成最终的状态向量
+        state = [cloud_cpu] + [cpu for _, cpu in edge_cpus]
+        return np.array(state, dtype=np.float32)
+    
+
+
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------

@@ -44,6 +44,10 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         #更新资源表信息
         self.env.update_resource_table(resource_table)
 
+        
+
+
+
 
 
 

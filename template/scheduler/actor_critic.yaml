@@ -6,7 +6,7 @@ pod-template:
     - name: SCH_CONFIG_NAME
       value: simple
     - name: SCH_SCENARIO_NAME
-      value: simple
+      value: actorcritic
     - name: SCH_STARTUP_NAME
       value: fixed
     - name: SCH_POLICY_NAME
@@ -14,9 +14,9 @@ pod-template:
     - name: SCH_AGENT_NAME
       value: actorcritic
     - name: SCH_SERVICES_ALLOCATE_NAME
-      value: actorcritic
+      value: simple
     - name: SCH_DEVICES_ALLOCATE_NAME
-      value: actorcritic
+      value: simple
     - name: SCH_AGENT_PARAMETERS
       value: >-
         {

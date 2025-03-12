@@ -22,7 +22,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.last_task_delay = 0
          
 
-        
+
 
 
     def get_schedule_plan(self, info):
@@ -48,11 +48,12 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         
         self.env.update_resource_table(resource_table)
 
-        self.env.update_delay_reward(self.last_task_delay)
+        self.env.update_delay(self.last_task_delay)
+        
+        self.env.get_selected_device()
 
-
-
-
+        #TODO 如何避免这里一直拿到的是旧策略,即DRL运行的很慢，有没有死锁问题
+        #
 
 
 

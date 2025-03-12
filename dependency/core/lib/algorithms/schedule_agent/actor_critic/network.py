@@ -5,6 +5,7 @@ import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import rl_utils 
+import time
 
 
 class PolicyNet(torch.nn.Module):
@@ -95,8 +96,11 @@ class CloudEdgeEnv(gym.Env):
         self.device_list = list(self.device_info.keys())
 
         self.selected_device = cloud_device
-        self.delay_reward = 0
+        self.delay_update_flag = False
 
+        self.delay = 0
+        self.task_count = 0
+        self.max_count = 50
         
         # 状态空间：负载
         self.observation_space = gym.spaces.Box(
@@ -115,8 +119,14 @@ class CloudEdgeEnv(gym.Env):
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
         self.selected_device = self.device_list[action]
-        reward = -self.delay_reward
-        done = True
+
+        while not self.delay_update_flag:   #与scheduler_agent同步
+            time.sleep(1)
+
+
+        reward = -self.delay
+
+        done = self.check_done()    #执行指定数量的task后作为结束标志
 
         return self.extract_cpu_state(), reward, done, {}
 
@@ -126,8 +136,9 @@ class CloudEdgeEnv(gym.Env):
     def update_resource_table(self, resource_table):   
         self.resource_table = resource_table
 
-    def update_delay_reward(self, delay_reward):
-        self.delay_reward = delay_reward
+    def update_delay(self, delay):
+        self.delay = delay
+        self.delay_update_flag = True
 
 
     def extract_cpu_state(self):
@@ -151,8 +162,15 @@ class CloudEdgeEnv(gym.Env):
         state = [cloud_cpu] + [cpu for _, cpu in edge_cpus]
         return np.array(state, dtype=np.float32)
     
-
+    def check_done(self):
+        self.task_count += 1
+        done = self.task_count >= self.max_tasks
+        if done:
+            self.task_count = 0
+        return done
     
+    def get_selected_device(self):
+        return self.selected_device
 
 
 

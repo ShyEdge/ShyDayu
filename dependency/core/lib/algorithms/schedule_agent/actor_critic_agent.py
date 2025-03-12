@@ -17,8 +17,13 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
         #self.services_allocate = Context.get_algorithm('SCH_SERVICES_ALLOCATE')
+
         self.env = CloudEdgeEnv(actorcritic_policy['device_info'], system.cloud_device)
+        self.last_task_delay = 0
+         
+
         
+
 
     def get_schedule_plan(self, info):
    
@@ -41,10 +46,11 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         #训练需要的参数
         train_para = policy['train_parameters']
         
-        #更新资源表信息
         self.env.update_resource_table(resource_table)
 
-        
+        self.env.update_delay_reward(self.last_task_delay)
+
+
 
 
 
@@ -62,7 +68,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         pass
 
     def update_scenario(self, scenario):
-        pass
+        self.last_task_delay = scenario['delay']
 
     def update_resource(self, device, resource):
         pass

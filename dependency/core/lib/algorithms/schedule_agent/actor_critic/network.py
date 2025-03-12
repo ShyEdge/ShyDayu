@@ -95,6 +95,7 @@ class CloudEdgeEnv(gym.Env):
         self.device_list = list(self.device_info.keys())
 
         self.selected_device = cloud_device
+        self.delay_reward = 0
 
         
         # 状态空间：负载
@@ -111,17 +112,22 @@ class CloudEdgeEnv(gym.Env):
         return new_state
     
 
-    def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息
-        
+
+    def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
         self.selected_device = self.device_list[action]
+        reward = -self.delay_reward
+        done = True
 
+        return self.extract_cpu_state(), reward, done, {}
+
+    
         
-
-
-
 
     def update_resource_table(self, resource_table):   
         self.resource_table = resource_table
+
+    def update_delay_reward(self, delay_reward):
+        self.delay_reward = delay_reward
 
 
     def extract_cpu_state(self):
@@ -146,6 +152,7 @@ class CloudEdgeEnv(gym.Env):
         return np.array(state, dtype=np.float32)
     
 
+    
 
 
 

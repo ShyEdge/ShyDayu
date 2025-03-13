@@ -115,8 +115,6 @@ class CloudEdgeEnv(gym.Env):
         new_state = np.full(len(self.device_info), 50, dtype=np.float32)
         return new_state
 
-    
-
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
 
@@ -132,10 +130,8 @@ class CloudEdgeEnv(gym.Env):
 
         done = self.check_done()    #执行指定数量的task后作为结束标志
 
-        return self.extract_cpu_state(), reward, done, {}
+        return self.extract_cpu_state(), reward, done, {}  
 
-    
-        
 
     def update_resource_table(self, resource_table):   
         self.resource_table = resource_table
@@ -174,47 +170,23 @@ class CloudEdgeEnv(gym.Env):
     
     def get_selected_device(self):
         return self.selected_device
-    
-
-
-#--------------------------------------------------------------------------------------------------------------------------------------
-# 训练参数
-actor_lr = 1e-3
-critic_lr = 1e-2
-num_episodes = 500
-hidden_dim = 128
-gamma = 0.98  # 奖励折扣
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-# 使用 CloudEdgeEnv 作为环境
-num_edges = 2  # 设定边缘设备数量
-env = CloudEdgeEnv(num_edges)
-
-# 获取状态维度和动作维度
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-# 创建 Actor-Critic 智能体
-agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, gamma, device)
-
-# 训练智能体, stop here 
-return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes)
 
 
 
-#--------------------------------------------------------------------------------------------------------------------------------------
-# 绘制训练曲线
-episodes_list = list(range(len(return_list)))
-plt.plot(episodes_list, return_list)
-plt.xlabel('Episodes')
-plt.ylabel('Returns')
-plt.title('Actor-Critic on CloudEdgeEnv')
-plt.show()
+def train_actorcritic_on_policy(env):
+    # 训练参数
+    actor_lr = 1e-3
+    critic_lr = 1e-2
+    num_episodes = 200
+    hidden_dim = 128
+    gamma = 0.98  # 奖励折扣
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-# 计算平滑曲线
-mv_return = rl_utils.moving_average(return_list, 9)
-plt.plot(episodes_list, mv_return)
-plt.xlabel('Episodes')
-plt.ylabel('Returns')
-plt.title('Actor-Critic on CloudEdgeEnv (Smoothed)')
-plt.show()
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
+
+    # 创建 Actor-Critic 智能体
+    agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, gamma, device)
+
+    # 训练智能体 
+    rl_utils.train_on_policy_agent(env, agent, num_episodes)

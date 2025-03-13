@@ -1,8 +1,9 @@
 import abc
+
 from core.lib.common import ClassFactory, ClassType, Context
 
 from .base_agent import BaseAgent
-from .actor_critic.network import CloudEdgeEnv
+from .actor_critic.network import CloudEdgeEnv, train_actorcritic_on_policy
 
 __all__ = ('ActorCriticAgent',)
 
@@ -17,6 +18,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
         self.last_task_delay = 0
+        self.train_para = actorcritic_policy['train_parameters']
 
         self.env = CloudEdgeEnv(actorcritic_policy['device_info'], system.cloud_device)
         
@@ -38,9 +40,6 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         device_info = policy['device_info']
         device_info['cloud'] = cloud_device
         device_info['local'] = local_device
-
-        #训练需要的参数
-        train_para = policy['train_parameters']
         
         self.env.update_resource_table(resource_table)  #next_state
 
@@ -64,7 +63,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
 
 
     def run(self):
-        pass
+        train_actorcritic_on_policy(self.env)
 
     def update_scenario(self, scenario):
         self.last_task_delay = scenario['delay']

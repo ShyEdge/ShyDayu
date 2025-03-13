@@ -1,5 +1,4 @@
 import abc
-import time
 from core.lib.common import ClassFactory, ClassType, Context
 
 from .base_agent import BaseAgent
@@ -17,14 +16,10 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.agent_id = agent_id
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
-        #self.services_allocate = Context.get_algorithm('SCH_SERVICES_ALLOCATE')
+        self.last_task_delay = 0
 
         self.env = CloudEdgeEnv(actorcritic_policy['device_info'], system.cloud_device)
-        self.last_task_delay = 0
-         
-
-
-
+        
 
     def get_schedule_plan(self, info):
    
@@ -52,9 +47,9 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.env.update_delay(self.last_task_delay)  #reward
         
         # 增加一个同步逻辑，等待选择设备更新
-        self.env.set_sync(True)
-        while self.env.get_sync():
-            time.sleep(0.001)
+        self.env.delay_set_event.set()  #设置事情为已触发
+        self.env.device_set_event.wait()  #阻塞当前进程，等待事件触发
+        self.env.delay_set_event.clear()  #设置事件为未触发
 
         execute_device = self.env.get_selected_device()
         

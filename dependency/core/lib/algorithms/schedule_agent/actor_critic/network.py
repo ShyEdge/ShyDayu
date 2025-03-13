@@ -1,3 +1,4 @@
+import threading
 import gym  # type: ignore 
 #from gym import spaces  # type: ignore
 import torch # type: ignore
@@ -5,7 +6,6 @@ import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import rl_utils 
-import time
 
 
 class PolicyNet(torch.nn.Module):
@@ -97,7 +97,8 @@ class CloudEdgeEnv(gym.Env):
 
         self.selected_device = cloud_device
 
-        self.sync = False
+        self.device_set_event = threading.Event()  # 确保设备已选择
+        self.delay_set_event = threading.Event()   # 确保 delay 已更新
 
         self.delay = 0
         self.task_count = 0
@@ -122,10 +123,11 @@ class CloudEdgeEnv(gym.Env):
 
         self.selected_device = self.device_list[action]
 
-        # 增加一个同步逻辑，等待delay返回和resource_table更新
-        self.sync = False
-        while not self.sync:
-            time.sleep(0.001)
+        #
+        self.device_set_event.set()
+        self.delay_set_event.wait()
+        self.device_set_event.clear()
+
         
         reward = -self.delay
 
@@ -174,12 +176,6 @@ class CloudEdgeEnv(gym.Env):
     def get_selected_device(self):
         return self.selected_device
     
-    def set_sync(self, flag: bool):
-        self.sync = flag
-
-    def get_sync(self):
-        return self.sync
-
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------

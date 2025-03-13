@@ -93,10 +93,11 @@ class CloudEdgeEnv(gym.Env):
         self.device_info = device_info
         self.device_info['cloud'] = cloud_device
         self.resource_table = None
-        self.device_list = list(self.device_info.keys())
+        self.device_list = list(self.device_info.keys())  #按顺序
 
         self.selected_device = cloud_device
-        self.delay_update_flag = False
+
+        self.sync = False
 
         self.delay = 0
         self.task_count = 0
@@ -110,20 +111,22 @@ class CloudEdgeEnv(gym.Env):
         # 动作空间，目前做的1阶段的
         self.action_space = gym.spaces.Discrete(len(device_info))
 
-    def reset(self, resource_table):
-        self.update_resource_table(resource_table)
-        new_state = self.extract_cpu_state()
+    def reset(self):
+        new_state = np.full(len(self.device_info), 50, dtype=np.float32)
         return new_state
+
     
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
+
         self.selected_device = self.device_list[action]
 
-        while not self.delay_update_flag:   #与scheduler_agent同步
-            time.sleep(1)
-
-
+        # 增加一个同步逻辑，等待delay返回和resource_table更新
+        self.sync = False
+        while not self.sync:
+            time.sleep(0.001)
+        
         reward = -self.delay
 
         done = self.check_done()    #执行指定数量的task后作为结束标志
@@ -138,7 +141,6 @@ class CloudEdgeEnv(gym.Env):
 
     def update_delay(self, delay):
         self.delay = delay
-        self.delay_update_flag = True
 
 
     def extract_cpu_state(self):
@@ -171,6 +173,12 @@ class CloudEdgeEnv(gym.Env):
     
     def get_selected_device(self):
         return self.selected_device
+    
+    def set_sync(self, flag: bool):
+        self.sync = flag
+
+    def get_sync(self):
+        return self.sync
 
 
 

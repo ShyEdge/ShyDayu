@@ -1,4 +1,5 @@
 import abc
+import time
 from core.lib.common import ClassFactory, ClassType, Context
 
 from .base_agent import BaseAgent
@@ -46,19 +47,20 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         #训练需要的参数
         train_para = policy['train_parameters']
         
-        self.env.update_resource_table(resource_table)
+        self.env.update_resource_table(resource_table)  #next_state
 
-        self.env.update_delay(self.last_task_delay)
+        self.env.update_delay(self.last_task_delay)  #reward
         
-        self.env.get_selected_device()
+        # 增加一个同步逻辑，等待选择设备更新
+        self.env.set_sync(True)
+        while self.env.get_sync():
+            time.sleep(0.001)
 
-        #TODO 如何避免这里一直拿到的是旧策略,即DRL运行的很慢，有没有死锁问题
-        #
+        execute_device = self.env.get_selected_device()
+        
+        # 修改Pipeline的内容，只针对单阶段
+        pipeline = [{**p, 'execute_device': execute_device} for p in pipeline]
 
-
-
-
-        #pipeline=self.services_allocate(decision_para, device_info, pipeline, resource_table)
 
         policy.update({'pipeline': pipeline})
 

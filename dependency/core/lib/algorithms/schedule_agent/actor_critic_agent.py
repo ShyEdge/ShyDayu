@@ -47,9 +47,10 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.env.update_delay(self.last_task_delay)  #reward
         
         # 增加一个同步逻辑，等待选择设备更新
-        self.env.delay_set_event.set()  #设置事情为已触发
-        self.env.device_set_event.wait()  #阻塞当前进程，等待事件触发
-        self.env.delay_set_event.clear()  #设置事件为未触发
+        with self.env.condition:
+            # 增加同步逻辑，等待设备更新
+            self.env.condition.notify_all()  # 通知 `step` 线程设备已更新
+            self.env.condition.wait()  # 阻塞当前线程，等待设备选择
 
         execute_device = self.env.get_selected_device()
         

@@ -97,8 +97,7 @@ class CloudEdgeEnv(gym.Env):
 
         self.selected_device = cloud_device
 
-        self.device_set_event = threading.Event()  # 确保设备已选择
-        self.delay_set_event = threading.Event()   # 确保 delay 已更新
+        self.condition = threading.Condition()
 
         self.delay = 0
         self.task_count = 0
@@ -123,10 +122,10 @@ class CloudEdgeEnv(gym.Env):
 
         self.selected_device = self.device_list[action]
 
-        #
-        self.device_set_event.set()
-        self.delay_set_event.wait()
-        self.device_set_event.clear()
+        with self.condition:  # 进入临界区，确保同步
+            # 通知 get_schedule_plan() 设备已选择
+            self.condition.notify_all()  # 唤醒等待的线程
+            self.condition.wait()  # 阻塞等待条件满足，直到其他线程通知它
 
         
         reward = -self.delay

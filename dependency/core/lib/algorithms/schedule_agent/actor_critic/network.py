@@ -4,7 +4,6 @@ import threading
 import torch # type: ignore
 import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
-import matplotlib.pyplot as plt  # type: ignore
 from . import rl_utils 
 
 

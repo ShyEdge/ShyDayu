@@ -8,3 +8,4 @@ from . import hei_synchronous_agent
 from . import hei_drl_agent
 from . import hei_nf_agent
 from . import loadbased_agent
+from . import actorcritic_agent

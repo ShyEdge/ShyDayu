@@ -1,5 +1,5 @@
 import threading
-import gym  # type: ignore 
+#import gym 
 #from gym import spaces  # type: ignore
 import torch # type: ignore
 import torch.nn.functional as F  # type: ignore
@@ -86,9 +86,8 @@ class ActorCritic:
 
 
 
-class CloudEdgeEnv(gym.Env):
+class CloudEdgeEnv():
     def __init__(self, device_info=None, cloud_device=None):
-        super(CloudEdgeEnv, self).__init__()
 
         self.device_info = device_info
         self.device_info['cloud'] = cloud_device
@@ -104,12 +103,10 @@ class CloudEdgeEnv(gym.Env):
         self.max_count = 5
         
         # 状态空间：负载
-        self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(len(device_info),), dtype=np.float32 
-        )
+        self.observation_space_shape = (len(device_info),)
 
         # 动作空间，目前做的1阶段的
-        self.action_space = gym.spaces.Discrete(len(device_info))
+        self.action_space_n = len(device_info)
 
     def reset(self):
         new_state = np.full(len(self.device_info), 50, dtype=np.float32)
@@ -181,8 +178,8 @@ def train_actorcritic_on_policy(env):
     gamma = 0.98  # 奖励折扣
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
+    state_dim = env.observation_space_shape[0]
+    action_dim = env.action_space_n
 
     #print(f"state_dim is {state_dim}")
     #print(f"action_dim is {action_dim}")

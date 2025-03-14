@@ -23,7 +23,6 @@ pod-template:
             "buffer_size": 4,
             "device_info": {
               "edge3": "edge3",
-              "edge8": "edge8"
             },
             "train_parameters": {
               "actor_lr": 0.001,

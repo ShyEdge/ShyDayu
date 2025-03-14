@@ -30,7 +30,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
 
         policy = self.actorcritic_policy.copy()
 
-        local_device = info['device']
+        #local_device = info['device']
         pipeline = info['pipeline']
         resource_table = info['resource_table']
 
@@ -39,7 +39,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         #设备信息
         device_info = policy['device_info']
         device_info['cloud'] = cloud_device
-        device_info['local'] = local_device
+        #device_info['local'] = local_device
         
         self.env.update_resource_table(resource_table)  #next_state
 

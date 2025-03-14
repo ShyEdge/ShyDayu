@@ -5,7 +5,7 @@ import torch # type: ignore
 import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
-import rl_utils 
+from . import rl_utils 
 
 
 class PolicyNet(torch.nn.Module):
@@ -105,7 +105,7 @@ class CloudEdgeEnv(gym.Env):
         
         # 状态空间：负载
         self.observation_space = gym.spaces.Box(
-            shape=(len(device_info),), dtype=np.float32 
+            low=-np.inf, high=np.inf, shape=(len(device_info),), dtype=np.float32 
         )
 
         # 动作空间，目前做的1阶段的
@@ -163,7 +163,7 @@ class CloudEdgeEnv(gym.Env):
     
     def check_done(self):
         self.task_count += 1
-        done = self.task_count >= self.max_tasks
+        done = self.task_count >= self.max_count
         if done:
             self.task_count = 0
         return done

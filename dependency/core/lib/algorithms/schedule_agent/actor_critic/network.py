@@ -56,8 +56,16 @@ class ActorCritic:
     
 
     def update(self, transition_dict):
+
+        print("*****************************************************env update*****************************************************")
+
         states = torch.tensor(transition_dict['states'],
                               dtype=torch.float).to(self.device)
+        
+        
+
+
+
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(
             self.device)
         rewards = torch.tensor(transition_dict['rewards'],
@@ -66,6 +74,15 @@ class ActorCritic:
                                    dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
+        
+
+        print("*****************************************************update content*****************************************************")
+        print(states)
+        print(actions)
+        print(rewards)
+        print(dones)
+        print("************************************************************************************************************************")
+
 
         # 时序差分目标
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -
@@ -117,6 +134,8 @@ class CloudEdgeEnv(gym.Env):
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
+
+        print("*****************************************************agent step*****************************************************")
 
         self.selected_device = self.device_list[action]
 

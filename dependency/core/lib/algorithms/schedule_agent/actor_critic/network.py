@@ -130,15 +130,16 @@ class CloudEdgeEnv():
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
 
-        print("*****************************************************agent step*****************************************************")
-
         self.selected_device = self.device_list[action]
+
+        print("*****************************************************drl step wait for condition*****************************************************")
 
         with self.condition:  # 进入临界区，确保同步
             # 通知 get_schedule_plan() 设备已选择
             self.condition.notify_all()  # 唤醒等待的线程
             self.condition.wait()  # 阻塞等待条件满足，直到其他线程通知它
 
+        print("*****************************************************drl step wait for condition end*****************************************************")
         
         reward = -self.delay
 

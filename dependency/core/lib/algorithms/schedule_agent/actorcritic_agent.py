@@ -44,12 +44,16 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.env.update_resource_table(resource_table)  #next_state
 
         self.env.update_delay(self.last_task_delay)  #reward
+
+        print("--------------------------------------------------------agent wait for condition--------------------------------------------------------")
         
         # 增加一个同步逻辑，等待选择设备更新
         with self.env.condition:
             # 增加同步逻辑，等待设备更新
             self.env.condition.notify_all()  # 通知 `step` 线程设备已更新
             self.env.condition.wait()  # 阻塞当前线程，等待设备选择
+
+        print("--------------------------------------------------------agent wait for condition end--------------------------------------------------------")
 
         execute_device = self.env.get_selected_device()
         
@@ -58,6 +62,8 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
 
 
         policy.update({'pipeline': pipeline})
+
+        print(f"#################return policy is {policy}###############")
 
         return policy
 

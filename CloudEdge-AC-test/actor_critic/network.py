@@ -87,12 +87,12 @@ class ActorCritic:
 
 class CloudEdgeEnv():
     def __init__(self, device_info=None, cloud_device=None):
-
         self.device_info = device_info
+        self.device_list = [cloud_device] + list(self.device_info.values())  #按yaml顺序
+
         self.device_info['cloud'] = cloud_device
         self.resource_table = None
-        self.device_list = list(self.device_info.keys())  #按顺序
-
+        
         self.selected_device = cloud_device
 
         self.condition = threading.Condition()
@@ -106,6 +106,8 @@ class CloudEdgeEnv():
 
         # 动作空间，目前做的1阶段的
         self.action_space_n = len(device_info)
+
+        print(self.device_list)
 
     def reset(self):
         new_state = np.full(len(self.device_info), 50, dtype=np.float32)

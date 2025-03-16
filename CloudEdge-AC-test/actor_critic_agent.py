@@ -94,8 +94,8 @@ dummy_policy = {
         'dummy_param': True
     },
     'device_info': {
-        'edge1': {'cpu': 50},
-        'edge2': {'cpu': 50}
+        'edge1': 'device-edge1',
+        'edge2': 'device-edge2'
     }
 }
 

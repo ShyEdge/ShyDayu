@@ -74,7 +74,15 @@ class TimeEstimator:
         if is_end:
             assert tag in data, f'record end timestamp of {tag}, but start timestamp does not exists!'
             start_time = data[tag]
+
+            print("------------------------------------------------------------------------")
+            print( f"data的内容是:{data}" )
+            print("------------------------------------------------------------------------")
+            print(f"start_time是{start_time}")
             end_time = time.time()
+            print(f"end_time是{end_time}")
+            print("------------------------------------------------------------------------")
+
             del data[tag]
             duration = end_time - start_time
         else:

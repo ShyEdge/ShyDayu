@@ -12,7 +12,7 @@ source_list:
       buffer_size: 4
   - name: "street_camera_0"
     url: ""
-    dir: "street_1"
+    dir: "street_0"
     metadata:
       resolution: "1080p"
       fps: 30

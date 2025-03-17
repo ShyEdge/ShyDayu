@@ -58,8 +58,8 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         execute_device = self.env.get_selected_device()
         
         # 修改Pipeline的内容，只针对单阶段
-        pipeline = [{**p, 'execute_device': execute_device[0]} for p in pipeline[0]] + \
-                   [{**p, 'execute_device': execute_device[1]} for p in pipeline[1]]
+        pipeline = [{**p, 'execute_device': execute_device[0]} for p in pipeline[:1]] + \
+           [{**p, 'execute_device': execute_device[1]} for p in pipeline[1:]]
 
 
         policy.update({'pipeline': pipeline})

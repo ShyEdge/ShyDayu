@@ -56,7 +56,7 @@ class ActorCritic:
 
     def update(self, transition_dict):
 
-        print("*****************************************************env update*****************************************************")
+        #print("*****************************************************env update*****************************************************")
 
         states = torch.tensor(transition_dict['states'],
                               dtype=torch.float).to(self.device)
@@ -76,10 +76,10 @@ class ActorCritic:
         
 
         print("*****************************************************update content*****************************************************")
-        print(states)
-        print(actions)
-        print(rewards)
-        print(dones)
+        print(f"states是{states}")
+        print(f"actions是{actions}")
+        print(f"rewards是{rewards}")
+        print(f"dones是{dones}")
         print("************************************************************************************************************************")
 
 
@@ -105,42 +105,50 @@ class ActorCritic:
 class CloudEdgeEnv():
     def __init__(self, device_info=None, cloud_device=None):
         self.device_info = device_info
-        self.device_list = [cloud_device] + list(self.device_info.values())  #按yaml顺序
+        self.device_list = list(self.device_info.values()) + [cloud_device]  #按yaml顺序
 
         self.device_info['cloud'] = cloud_device
         self.resource_table = None
 
-        self.selected_device = cloud_device
+        self.selected_device = [cloud_device, cloud_device]
 
         self.condition = threading.Condition()
 
         self.delay = 0
         self.task_count = 0
-        self.max_count = 5
+        self.max_count = 20
         
         # 状态空间：负载
         self.observation_space_shape = (len(device_info),)
 
-        # 动作空间，目前做的1阶段的
-        self.action_space_n = len(device_info)
+        #两阶段
+        self.action_space_n = len(device_info) * len(device_info) - len(device_info) + 1
+
 
     def reset(self):
-        new_state = np.full(len(self.device_info), 50, dtype=np.float32)
+        new_state = np.full(len(self.device_info), 20, dtype=np.float32)
         return new_state
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
 
-        self.selected_device = self.device_list[action]
-
-        print("*****************************************************drl step wait for condition*****************************************************")
+        if action == self.action_space_n - 1:
+            self.selected_device = [self.device_info['cloud'], self.device_info['cloud']]
+        else:
+            # action 对 x 取模后，选择对应的设备
+            x = len(self.device_info)
+            idx1 = action // x  
+            idx2 = action % x  
+            self.selected_device = [self.device_list[idx1], self.device_list[idx2]]
+        
+        #print("*****************************************************drl step wait for condition*****************************************************")
 
         with self.condition:  # 进入临界区，确保同步
             # 通知 get_schedule_plan() 设备已选择
             self.condition.notify_all()  # 唤醒等待的线程
             self.condition.wait()  # 阻塞等待条件满足，直到其他线程通知它
 
-        print("*****************************************************drl step wait for condition end*****************************************************")
+        #print("*****************************************************drl step wait for condition end*****************************************************")
         
         reward = -self.delay
 

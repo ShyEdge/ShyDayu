@@ -57,10 +57,12 @@ def train_on_policy_agent(env, agent, num_episodes):
 
 def train_on_policy_agent_CloudEdge(env, agent, num_episodes):
     return_list = []
+    #只有最开始的时候初始化一次
+    state = env.reset()  
     for i in range(num_episodes):
         episode_return = 0
         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-        state = env.reset()
+        #state = env.reset()
         done = False
         while not done:
             action = agent.take_action(state)

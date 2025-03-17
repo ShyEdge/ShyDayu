@@ -45,7 +45,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
 
         self.env.update_delay(self.last_task_delay)  #reward
 
-        print("--------------------------------------------------------agent wait for condition--------------------------------------------------------")
+        #print("--------------------------------------------------------sch_agent wait for condition--------------------------------------------------------")
         
         # 增加一个同步逻辑，等待选择设备更新
         with self.env.condition:
@@ -53,17 +53,18 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
             self.env.condition.notify_all()  # 通知 `step` 线程设备已更新
             self.env.condition.wait()  # 阻塞当前线程，等待设备选择
 
-        print("--------------------------------------------------------agent wait for condition end--------------------------------------------------------")
+        #print("--------------------------------------------------------sch_agent wait for condition end----------------------------------------------------")
 
         execute_device = self.env.get_selected_device()
         
         # 修改Pipeline的内容，只针对单阶段
-        pipeline = [{**p, 'execute_device': execute_device} for p in pipeline]
+        pipeline = [{**p, 'execute_device': execute_device[0]} for p in pipeline[0]] + \
+                   [{**p, 'execute_device': execute_device[1]} for p in pipeline[1]]
 
 
         policy.update({'pipeline': pipeline})
 
-        print(f"#################return policy is {policy}###############")
+        #print(f"#################return policy is {policy}###############")
 
         return policy
 

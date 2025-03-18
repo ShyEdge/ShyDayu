@@ -123,6 +123,8 @@ class CloudEdgeEnv():
 
         self.reward_list = []
         self.reward_list_avg = []
+        self.delay_list = []
+        self.delay_list_avg = []
 
         self.state_buffer = deque([(0, 0.6)] * 5, maxlen=5)
         
@@ -174,7 +176,7 @@ class CloudEdgeEnv():
 
         self.state_buffer.append((action, reward))
 
-        self.display_rewards(reward)
+        self.display_rewards(self.delay, reward)
 
         done = self.check_done()    #执行指定数量的task后作为结束标志
 
@@ -221,17 +223,31 @@ class CloudEdgeEnv():
             self.task_count = 0
         return done
     
-    def display_rewards(self, reward):
+    def display_rewards(self, delay, reward):
+        self.delay_list.append(delay)
         self.reward_list.append(reward)
         list_length = len(self.reward_list)
-            
+    
         if list_length % self.max_count == 0:
             avg_reward = sum(self.reward_list[-self.max_count:]) / self.max_count  
             self.reward_list_avg.append(avg_reward)
-            print(f"reward_list_avgd的内容是{self.reward_list_avg}")
+            print(f"reward_list_avg的内容是{self.reward_list_avg}")
 
-    def compute_reward(self, delay):
-        return -np.exp(delay - 0.6) + 1.5
+            avg_delay = sum(self.delay_list[-self.max_count:]) / self.max_count  
+            self.delay_list_avg.append(avg_delay)
+            print(f"delay_list_avg的内容是{self.delay_list_avg}")
+
+    def compute_reward(delay):
+        if delay < 0.5:
+            return 1.0
+        elif 0.5 <= delay < 0.7:
+            return 0.5
+        elif 0.7 <= delay < 0.9:
+            return 0.2
+        elif 0.9 <= delay < 1.5:
+            return -0.5
+        else:
+            return -1.5
 
     def get_state_buffer(self):
         state = np.array(self.state_buffer).flatten()

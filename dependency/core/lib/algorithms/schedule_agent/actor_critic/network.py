@@ -6,6 +6,7 @@ import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
 import random
 from . import rl_utils 
+from collections import deque
 
 
 class PolicyNet(torch.nn.Module):
@@ -64,11 +65,7 @@ class ActorCritic:
         #print("*****************************************************env update*****************************************************")
 
         states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        
-        
-
-
+                              dtype=torch.float).to(self.device)     
 
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(
             self.device)
@@ -79,14 +76,12 @@ class ActorCritic:
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
         
-
         print("*****************************************************update content*****************************************************")
         print(f"states是{states}")
         print(f"actions是{actions}")
         print(f"rewards是{rewards}")
-        print(f"dones是{dones}")
+        #print(f"dones是{dones}")
         print("************************************************************************************************************************")
-
 
         # 时序差分目标
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -
@@ -128,6 +123,8 @@ class CloudEdgeEnv():
 
         self.reward_list = []
         self.reward_list_avg = []
+
+        self.state_buffer = deque([(0, 0.6)] * 5, maxlen=5)
         
         # 状态空间：负载
         self.observation_space_shape = (len(device_info),)
@@ -137,8 +134,7 @@ class CloudEdgeEnv():
 
 
     def reset(self):
-        new_state = np.full(len(self.device_info), 20, dtype=np.float32)
-        return new_state
+        return self.get_state_buffer()
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
@@ -172,15 +168,17 @@ class CloudEdgeEnv():
         with self.condition: 
             self.condition.notify_all() 
             self.condition.wait()  
-        #print("*****************************************************drl step wait for condition end*****************************************************")
+        #print("*****************************************************drl step wait for condition end*************************************************")
         
-        reward = -self.delay
+        reward = self.compute_reward(self.delay)
+
+        self.state_buffer.append((action, reward))
 
         self.display_rewards(reward)
 
         done = self.check_done()    #执行指定数量的task后作为结束标志
 
-        return self.extract_cpu_state(), reward, done, {}  
+        return self.get_state_buffer(), reward, done, {}  
 
 
     def update_resource_table(self, resource_table):   
@@ -232,12 +230,18 @@ class CloudEdgeEnv():
             self.reward_list_avg.append(avg_reward)
             print(f"reward_list_avgd的内容是{self.reward_list_avg}")
 
+    def compute_reward(self, delay):
+        return -np.exp(delay - 0.6) + 1.5
+
+    def get_state_buffer(self):
+        state = np.array(self.state_buffer).flatten()
+        return state
 
 def train_actorcritic_on_policy(env):
     # 训练参数
     actor_lr = 1e-3
     critic_lr = 1e-2
-    num_episodes = 200
+    num_episodes = 1000
     hidden_dim = 128
     gamma = 0.98  # 奖励折扣
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

@@ -127,7 +127,7 @@ class CloudEdgeEnv():
         self.state_buffer = deque([(0, 0.6)] * 5, maxlen=5)
         
         # 状态空间：负载
-        self.observation_space_shape = (len(device_info),)
+        self.observation_space_shape = 10
 
         #两阶段只有6种可能
         self.action_space_n = 6  

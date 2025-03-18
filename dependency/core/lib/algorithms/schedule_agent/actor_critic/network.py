@@ -246,7 +246,7 @@ def train_actorcritic_on_policy(env):
     gamma = 0.98  # 奖励折扣
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    state_dim = env.observation_space_shape[0]
+    state_dim = env.observation_space_shape
     action_dim = env.action_space_n
 
     # 创建 Actor-Critic 智能体

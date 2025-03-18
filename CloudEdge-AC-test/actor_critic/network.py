@@ -80,8 +80,21 @@ class ActorCritic:
         self.critic_optimizer.zero_grad()
         actor_loss.backward()  # 计算策略网络的梯度
         critic_loss.backward()  # 计算价值网络的梯度
-        self.actor_optimizer.step()  # 更新策略网络的参数
-        self.critic_optimizer.step()  # 更新价值网络的参数
+
+
+        # 输出 Actor 网络的梯度
+        print("Actor gradients:")
+        for name, param in self.actor.named_parameters():
+            if param.grad is not None:
+                print(f"{name}: {param.grad.norm().item()}")  # 也可以用 param.grad 来查看完整梯度
+
+        # 输出 Critic 网络的梯度
+        print("Critic gradients:")
+        for name, param in self.critic.named_parameters():
+            if param.grad is not None:
+                print(f"{name}: {param.grad.norm().item()}")
+                self.actor_optimizer.step()  # 更新策略网络的参数
+                self.critic_optimizer.step()  # 更新价值网络的参数
 
 
 

@@ -124,7 +124,10 @@ class CloudEdgeEnv():
 
         self.delay = 0
         self.task_count = 0
-        self.max_count = 20
+        self.max_count = 50
+
+        self.reward_list = []
+        self.reward_list_avg = []
         
         # 状态空间：负载
         self.observation_space_shape = (len(device_info),)
@@ -173,6 +176,8 @@ class CloudEdgeEnv():
         
         reward = -self.delay
 
+        self.display_rewards(reward)
+
         done = self.check_done()    #执行指定数量的task后作为结束标志
 
         return self.extract_cpu_state(), reward, done, {}  
@@ -186,6 +191,9 @@ class CloudEdgeEnv():
 
     def set_local_edge(self, local_edge):
         self.local_edge = local_edge
+
+    def get_selected_device(self):
+        return self.selected_device
 
     def extract_cpu_state(self):
         # 提取 cloud.kubeedge 的 CPU 负载
@@ -215,9 +223,14 @@ class CloudEdgeEnv():
             self.task_count = 0
         return done
     
-    def get_selected_device(self):
-        return self.selected_device
-
+    def display_rewards(self, reward):
+        self.reward_list.append(reward)
+        list_length = len(self.reward_list)
+            
+        if list_length % self.max_count == 0:
+            avg_reward = sum(self.reward_list[-self.max_count:]) / self.max_count  
+            self.reward_list_avg.append(avg_reward)
+            print(f"reward_list_avgd的内容是{self.reward_list_avg}")
 
 
 def train_actorcritic_on_policy(env):

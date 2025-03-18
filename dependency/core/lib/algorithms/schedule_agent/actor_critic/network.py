@@ -237,7 +237,7 @@ class CloudEdgeEnv():
             self.delay_list_avg.append(avg_delay)
             print(f"delay_list_avg的内容是{self.delay_list_avg}")
 
-    def compute_reward(delay):
+    def compute_reward(self, delay):
         if delay < 0.5:
             return 1.0
         elif 0.5 <= delay < 0.7:
@@ -254,7 +254,7 @@ class CloudEdgeEnv():
         return state
 
 def train_actorcritic_on_policy(env):
-    # 训练参数
+    
     actor_lr = 1e-3
     critic_lr = 1e-2
     num_episodes = 1000
@@ -265,8 +265,6 @@ def train_actorcritic_on_policy(env):
     state_dim = env.observation_space_shape
     action_dim = env.action_space_n
 
-    # 创建 Actor-Critic 智能体
     agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, gamma, device)
 
-    # 训练智能体 
     rl_utils.train_on_policy_agent_CloudEdge(env, agent, num_episodes)

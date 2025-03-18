@@ -4,6 +4,7 @@ import threading
 import torch # type: ignore
 import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
+import random
 from . import rl_utils 
 
 
@@ -46,6 +47,10 @@ class ActorCritic:
     def take_action(self, state):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)   # 动作概率分布
+
+        print("------------------------probs是------------------------------")
+        print(probs)
+        print("-------------------------------------------------------------")
 
         action_dist = torch.distributions.Categorical(probs)
         
@@ -94,10 +99,10 @@ class ActorCritic:
             F.mse_loss(self.critic(states), td_target.detach()))  #td_target 本身是由 Critic 计算出来的，所以它 包含 Critic 网络的计算图，如果不 detach()，它的梯度可能会影响 Critic 网络的学习，我们希望让td_target.detach()只是个常量
         self.actor_optimizer.zero_grad()
         self.critic_optimizer.zero_grad()
-        actor_loss.backward()  # 计算策略网络的梯度
-        critic_loss.backward()  # 计算价值网络的梯度
-        self.actor_optimizer.step()  # 更新策略网络的参数
-        self.critic_optimizer.step()  # 更新价值网络的参数
+        actor_loss.backward() 
+        critic_loss.backward() 
+        self.actor_optimizer.step() 
+        self.critic_optimizer.step() 
 
 
 
@@ -106,8 +111,11 @@ class CloudEdgeEnv():
     def __init__(self, device_info=None, cloud_device=None):
         self.device_info = device_info
         self.device_list = list(self.device_info.values()) + [cloud_device]  #按yaml顺序
+        self.local_edge = self.device_list[0]
+        self.other_edges = self.device_list[1:-1]
 
         self.device_info['cloud'] = cloud_device
+
         self.resource_table = None
 
         self.selected_device = [cloud_device, cloud_device]
@@ -121,8 +129,8 @@ class CloudEdgeEnv():
         # 状态空间：负载
         self.observation_space_shape = (len(device_info),)
 
-        #两阶段
-        self.action_space_n = len(device_info) * len(device_info) - len(device_info) + 1
+        #两阶段只有6种可能
+        self.action_space_n = 6  
 
 
     def reset(self):
@@ -131,7 +139,7 @@ class CloudEdgeEnv():
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
-
+        '''
         if action == self.action_space_n - 1:
             self.selected_device = [self.device_info['cloud'], self.device_info['cloud']]
         else:
@@ -140,14 +148,27 @@ class CloudEdgeEnv():
             idx1 = action // x  
             idx2 = action % x  
             self.selected_device = [self.device_list[idx1], self.device_list[idx2]]
-        
+        '''
+        selected_edge = random.choice(self.other_edges)
+        if action == 0:
+            self.selected_device = [self.local_edge, self.local_edge]
+        elif action == 1:
+            self.selected_device = [self.local_edge, selected_edge]
+        elif action == 2:
+            self.selected_device = [self.local_edge, self.device_info['cloud']]
+        elif action == 3:
+            self.selected_device = [selected_edge, selected_edge]
+        elif action == 4:
+            self.selected_device = [selected_edge, self.device_info['cloud']]
+        elif action == 5:
+            self.selected_device = [self.device_info['cloud'], self.device_info['cloud']]
+        else:
+            raise ValueError("Invalid action")
+
         #print("*****************************************************drl step wait for condition*****************************************************")
-
-        with self.condition:  # 进入临界区，确保同步
-            # 通知 get_schedule_plan() 设备已选择
-            self.condition.notify_all()  # 唤醒等待的线程
-            self.condition.wait()  # 阻塞等待条件满足，直到其他线程通知它
-
+        with self.condition: 
+            self.condition.notify_all() 
+            self.condition.wait()  
         #print("*****************************************************drl step wait for condition end*****************************************************")
         
         reward = -self.delay
@@ -163,6 +184,8 @@ class CloudEdgeEnv():
     def update_delay(self, delay):
         self.delay = delay
 
+    def set_local_edge(self, local_edge):
+        self.local_edge = local_edge
 
     def extract_cpu_state(self):
         # 提取 cloud.kubeedge 的 CPU 负载

@@ -36,6 +36,10 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         pipeline = info['pipeline']
         resource_table = info['resource_table']
 
+        print("--------------------resource_tables是-------------------------------------")
+        print(resource_table)
+        print("--------------------------------------------------------------------------")
+
         cloud_device = self.cloud_device
 
         #设备信息

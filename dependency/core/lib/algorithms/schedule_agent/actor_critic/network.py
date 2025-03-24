@@ -284,7 +284,7 @@ class CloudEdgeEnv():
         obj_num_avg = np.mean(obj_num) if len(obj_num) > 0 else 0
         obj_size_avg = np.mean(obj_size) if len(obj_size) > 0 else 0
         
-        self.state_buffer.update(self, cpu_local, cpu_other, bandwidth_local, bandwidth_other, action, delay, obj_num_avg, obj_size_avg)
+        self.state_buffer.update(cpu_local, cpu_other, bandwidth_local, bandwidth_other, action, delay, obj_num_avg, obj_size_avg)
 
         return self.state_buffer.get_state_vector()
 

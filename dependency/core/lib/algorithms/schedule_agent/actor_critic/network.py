@@ -66,15 +66,15 @@ class StateBuffer:
 
     def get_state_vector(self):
         """将 deque 数据转换为 1D NumPy 数组"""
-        return np.concatenate([
-            np.array(self.cpu_local),
-            np.array(self.cpu_other),
-            np.array(self.bandwidth_edge_local),
-            np.array(self.bandwidth_edge_other),
-            np.array(self.last_decision),
-            np.array(self.last_delay),
-            np.array(self.last_task_obj_num),
-            np.array(self.last_task_obj_size) 
+        return np.array([
+            list(self.cpu_local),
+            list(self.cpu_other),
+            list(self.bandwidth_edge_local),
+            list(self.bandwidth_edge_other),
+            list(self.last_decision),
+            list(self.last_delay),
+            list(self.last_task_obj_num),
+            list(self.last_task_obj_size)
         ])
 
     def get_state_shape(self):

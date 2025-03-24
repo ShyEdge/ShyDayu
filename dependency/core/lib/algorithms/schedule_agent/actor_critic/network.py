@@ -1,5 +1,4 @@
 import threading
-from turtle import update
 import torch # type: ignore
 import torch.nn as nn
 import torch.nn.functional as F  # type: ignore

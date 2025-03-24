@@ -276,10 +276,10 @@ class CloudEdgeEnv():
         cpu_local, cpu_other = self.extract_cpu_state()
         bandwidth_local, bandwidth_other = self.extract_bandwidth_state()
 
-        delay = self.scenario['delay']
-
-        obj_num = self.scenario['obj_num']
-        obj_size = self.scenario['obj_size']
+        #避免none导致的报错
+        delay = self.scenario.get('delay', 1) or 1
+        obj_num = self.scenario.get('obj_num', [0]) or [0]
+        obj_size = self.scenario.get('obj_size', [0]) or [0]
 
         obj_num_avg = np.mean(obj_num) if len(obj_num) > 0 else 0
         obj_size_avg = np.mean(obj_size) if len(obj_size) > 0 else 0

@@ -1,10 +1,11 @@
 import threading
+from turtle import update
 import torch # type: ignore
 import torch.nn as nn
 import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
 import random
-from . import rl_utils
+from . import rl_utils, StateBuffer
 from collections import deque
 
 '''
@@ -146,7 +147,7 @@ class CloudEdgeEnv():
 
         self.condition = threading.Condition()
 
-        self.delay = 0
+        self.scenario = None
         self.task_count = 0
         self.max_count = 50
 
@@ -155,11 +156,11 @@ class CloudEdgeEnv():
         self.delay_list = []
         self.delay_list_avg = []
 
-        self.state_buffer = deque([(0, 0.6)] * 5, maxlen=5)
+        self.state_buffer = StateBuffer()
 
 
     def reset(self):
-        return self.get_state_buffer()
+        return self.state_buffer.get_state_vector()
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
@@ -195,28 +196,45 @@ class CloudEdgeEnv():
             self.condition.wait()  
         #print("*****************************************************drl step wait for condition end*************************************************")
         
-        reward = self.compute_reward(self.delay)
+        
+        new_state = self.get_new_state(action) 
 
-        self.state_buffer.append((action, reward))
+        reward = self.compute_reward(self.scenario['delay'])
 
-        self.display_rewards(self.delay, reward)
+        self.display_rewards(self.scenario['delay'], reward)
 
         done = self.check_done()    #执行指定数量的task后作为结束标志
 
-        return self.get_state_buffer(), reward, done, {}  
+        return new_state, reward, done, {}  
 
 
     def update_resource_table(self, resource_table):   
         self.resource_table = resource_table
 
-    def update_delay(self, delay):
-        self.delay = delay
+    def update_scenario(self, scenario):
+        self.scenario = scenario
 
     def set_local_edge(self, local_edge):
         self.local_edge = local_edge
 
     def get_selected_device(self):
         return self.selected_device
+    
+    def get_new_state(self, action):
+        cpu_local, cpu_other = self.extract_cpu_state()
+        bandwidth_local, bandwidth_other = self.extract_bandwidth_state()
+
+        delay = self.scenario['delay']
+
+        obj_num = self.scenario['ojb_num']
+        obj_size = self.scenario['obj_size']
+
+        obj_num_avg = np.mean(obj_num) if len(obj_num) > 0 else 0
+        obj_size_avg = np.mean(obj_size) if len(obj_size) > 0 else 0
+        
+        self.state_buffer.update(self, cpu_local, cpu_other, bandwidth_local, bandwidth_other, action, delay, obj_num_avg, obj_size_avg)
+
+        return self.state_buffer.get_state_vector()
 
     def extract_cpu_state(self):
 
@@ -244,10 +262,8 @@ class CloudEdgeEnv():
                     print(key, bandwidth_value)
                     break
 
-        return bandwidth_value
+        return bandwidth_value, bandwidth_value
     
-    
-
     def check_done(self):
         self.task_count += 1
         done = self.task_count >= self.max_count
@@ -281,9 +297,6 @@ class CloudEdgeEnv():
         else:
             return -1.5
 
-    def get_state_buffer(self):
-        state = np.array(self.state_buffer).flatten()
-        return state
 
 def train_actorcritic_on_policy(env):
     

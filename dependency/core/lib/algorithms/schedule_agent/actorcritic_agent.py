@@ -17,7 +17,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.agent_id = agent_id
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
-        self.last_task_delay = 0
+        self.last_task_scenario = None
         self.train_para = actorcritic_policy['train_parameters']
 
         self.env = CloudEdgeEnv(actorcritic_policy['device_info'], system.cloud_device)
@@ -48,7 +48,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         #device_info['local'] = local_device
         
         self.env.update_resource_table(resource_table)  #next_state
-        self.env.update_delay(self.last_task_delay)  #reward
+        self.env.update_scenario(self.last_task_scenario)  #reward
 
         #print("--------------------------------------------------------sch_agent wait for condition--------------------------------------------------------")
         with self.env.condition:
@@ -72,7 +72,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         train_actorcritic_on_policy(self.env)
 
     def update_scenario(self, scenario):
-        self.last_task_delay = scenario['delay']
+        self.last_task_scenario = scenario
 
     def update_resource(self, device, resource):
         pass

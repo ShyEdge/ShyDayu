@@ -24,7 +24,7 @@ class StateBuffer:
             self.last_task_obj_num.append(0)  
             self.last_task_obj_size.append(0)  
 
-    def update(self, cpu_local, cpu_other, bandwidth_local, bandwidth_other, decision, delay, task_num, task):
+    def update(self, cpu_local, cpu_other, bandwidth_local, bandwidth_other, decision, delay, obj_num, obj_size):
         """更新状态"""
         self.cpu_local.append(cpu_local)
         self.cpu_other.append(cpu_other)
@@ -32,8 +32,8 @@ class StateBuffer:
         self.bandwidth_edge_other.append(bandwidth_other)
         self.last_decision.append(decision)
         self.last_delay.append(delay)
-        self.last_task_obj_num.append(task_num)  
-        self.last_task_obj_size.append(task)  
+        self.last_task_obj_num.append(obj_num)  
+        self.last_task_obj_size.append(obj_size)  
 
     def get_state_vector(self):
         """将 deque 数据转换为 1D NumPy 数组"""

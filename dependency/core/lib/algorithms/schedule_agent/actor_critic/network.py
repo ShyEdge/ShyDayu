@@ -194,7 +194,7 @@ class CloudEdgeEnv():
         self.device_info['cloud'] = cloud_device
 
         self.resource_table = None
-
+        self.train_parameters = None
         self.selected_device = [cloud_device, cloud_device]
 
         self.condition = threading.Condition()
@@ -272,6 +272,9 @@ class CloudEdgeEnv():
     def get_selected_device(self):
         return self.selected_device
     
+    def set_train_parameters(self, train_parameters):
+        self.train_parameters = train_parameters
+
     def get_new_state(self, action):
         cpu_local, cpu_other = self.extract_cpu_state()
         bandwidth_local, bandwidth_other = self.extract_bandwidth_state()
@@ -338,16 +341,17 @@ class CloudEdgeEnv():
             print(f"delay_list_avg的内容是{self.delay_list_avg}")
 
     def compute_reward(self, delay):
-        if delay < 0.5:
-            return 1.0
-        elif 0.5 <= delay < 0.7:
-            return 0.5
-        elif 0.7 <= delay < 0.9:
-            return 0.2
-        elif 0.9 <= delay < 1.5:
-            return -0.5
-        else:
-            return -1.5
+        
+        local_edge_cpu, other_edge_cpu = self.extract_cpu_state()
+        load_balance = abs(local_edge_cpu - other_edge_cpu)
+
+        alpha = self.train_parameters['reward_alpha']
+        beta = self.train_parameters['reward_beta']
+        c = self.train_parameters['reward_c']
+
+        reward = -alpha * delay - beta * load_balance + c
+
+        return reward
 
 
 def train_actorcritic_on_policy(env):

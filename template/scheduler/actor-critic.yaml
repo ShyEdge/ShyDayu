@@ -26,11 +26,9 @@ pod-template:
               "edge8": "edge8",
             },
             "train_parameters": {
-              "actor_lr": 0.001,
-              "critic_lr": 0.01,
-              "num_episodes": 500,
-              "hidden_dim": 128,
-              "gamma": 0.98
+              "reward_alpha": 1.0,
+              "reward_beta": 2.0,
+              "reward_c": 5,
             }
 
           }

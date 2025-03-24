@@ -18,7 +18,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
         self.last_task_scenario = None
-        self.train_para = actorcritic_policy['train_parameters']
+        self.env.set_train_parameters(actorcritic_policy['train_parameters'])
 
         self.env = CloudEdgeEnv(actorcritic_policy['device_info'], system.cloud_device)
         
@@ -41,11 +41,11 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         print("--------------------------------------------------------------------------")
 
         cloud_device = self.cloud_device
-
         #设备信息
         device_info = policy['device_info']
         device_info['cloud'] = cloud_device
-        #device_info['local'] = local_device
+        
+
         
         self.env.update_resource_table(resource_table)  #next_state
         self.env.update_scenario(self.last_task_scenario)  #reward

@@ -1,14 +1,13 @@
 import threading
-#import gym  # type: ignore 
-#from gym import spaces  # type: ignore
 import torch # type: ignore
+import torch.nn as nn
 import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
 import random
-from . import rl_utils 
+from . import rl_utils
 from collections import deque
 
-
+'''
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
         super(PolicyNet, self).__init__()
@@ -29,19 +28,51 @@ class ValueNet(torch.nn.Module):
     def forward(self, x):
         x = F.relu(self.fc1(x))
         return self.fc2(x)
+'''
+
+class PolicyNet(nn.Module):
+    def __init__(self, state_channels, history_length, hidden_dim, action_dim):
+        super(PolicyNet, self).__init__()
+        # 1D卷积层：保持时间步数不变
+        self.conv1 = nn.Conv1d(in_channels=state_channels, out_channels=16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        # 经过两个卷积层后，输出形状为 [batch_size, 32, history_length]
+        # 将卷积输出展平后送入全连接层
+        self.fc = nn.Linear(32 * history_length, hidden_dim)
+        self.out = nn.Linear(hidden_dim, action_dim)
+    
+    def forward(self, x):
+        # x 的输入形状为 [batch_size, channels, history_length]
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = x.view(x.size(0), -1)  # flatten
+        x = F.relu(self.fc(x))
+        return F.softmax(self.out(x), dim=1)
+
+
+class ValueNet(nn.Module):
+    def __init__(self, state_channels, history_length, hidden_dim):
+        super(ValueNet, self).__init__()
+        self.conv1 = nn.Conv1d(in_channels=state_channels, out_channels=16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        self.fc = nn.Linear(32 * history_length, hidden_dim)
+        self.out = nn.Linear(hidden_dim, 1)
+    
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc(x))
+        return self.out(x)
 
 
 class ActorCritic:
-    def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
-                 gamma, device):
-        # 策略网络
-        self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
-        self.critic = ValueNet(state_dim, hidden_dim).to(device)  
-        # 策略网络优化器
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
-                                                lr=actor_lr)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
-                                                 lr=critic_lr) 
+    def __init__(self, state_channels, history_length, hidden_dim, action_dim,
+                 actor_lr, critic_lr, gamma, device):
+        self.actor = PolicyNet(state_channels, history_length, hidden_dim, action_dim).to(device)
+        self.critic = ValueNet(state_channels, history_length, hidden_dim).to(device)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
         self.device = device
 
@@ -61,8 +92,6 @@ class ActorCritic:
     
 
     def update(self, transition_dict):
-
-        #print("*****************************************************env update*****************************************************")
 
         states = torch.tensor(transition_dict['states'],
                               dtype=torch.float).to(self.device)     
@@ -127,12 +156,6 @@ class CloudEdgeEnv():
         self.delay_list_avg = []
 
         self.state_buffer = deque([(0, 0.6)] * 5, maxlen=5)
-        
-        # 状态空间：负载
-        self.observation_space_shape = 10
-
-        #两阶段只有6种可能
-        self.action_space_n = 6  
 
 
     def reset(self):
@@ -270,10 +293,11 @@ def train_actorcritic_on_policy(env):
     hidden_dim = 128
     gamma = 0.98  # 奖励折扣
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-    state_dim = env.observation_space_shape
-    action_dim = env.action_space_n
-
-    agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, gamma, device)
+    state_channels = 8
+    history_length = 8
+    action_dim = 6
+    
+    agent = ActorCritic(state_channels, history_length, hidden_dim, action_dim,
+                 actor_lr, critic_lr, gamma, device)
 
     rl_utils.train_on_policy_agent_CloudEdge(env, agent, num_episodes)

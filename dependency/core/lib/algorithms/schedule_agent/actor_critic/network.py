@@ -199,7 +199,7 @@ class CloudEdgeEnv():
 
         self.condition = threading.Condition()
 
-        self.scenario = None
+        self.scenario = {}  #初始化
         self.task_count = 0
         self.max_count = 50
 

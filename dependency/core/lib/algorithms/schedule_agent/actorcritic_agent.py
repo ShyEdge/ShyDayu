@@ -18,10 +18,8 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
         self.last_task_scenario = None
-        self.env.set_train_parameters(actorcritic_policy['train_parameters'])
-
         self.env = CloudEdgeEnv(actorcritic_policy['device_info'], system.cloud_device)
-        
+        self.env.set_train_parameters(actorcritic_policy['train_parameters'])
 
     def get_schedule_plan(self, info):
    

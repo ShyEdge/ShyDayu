@@ -196,26 +196,35 @@ class CloudEdgeEnv():
         return self.selected_device
 
     def extract_cpu_state(self):
-        # 提取 cloud.kubeedge 的 CPU 负载
-        cloud_cpu = self.resource_table.get("cloud.kubeedge", {}).get("cpu", 0)
 
-        # 提取所有 edge 设备，并按 edge 编号排序
-        edge_cpus = []
-        for key, value in self.resource_table.items():
-            if key.startswith("edge"):
-                try:
-                    edge_num = int(key[4:])  # 提取 edge 设备编号
-                    edge_cpus.append((edge_num, value.get("cpu", 0)))
-                except ValueError:
-                    continue  # 跳过无法解析的 edge 设备名
+        local_edge_cpu = None  
+        other_edge_cpu = None  
 
-        # 按编号排序
-        edge_cpus.sort()
+        for key, val in self.resource_table.items():
+            if key.startswith('edge'):
+                if 'cpu' in val:
+                    if key == self.local_edge:
+                        local_edge_cpu = val['cpu']
+                    else:
+                        other_edge_cpu = val['cpu']
 
-        # 生成最终的状态向量
-        state = [cloud_cpu] + [cpu for _, cpu in edge_cpus]
-        return np.array(state, dtype=np.float32)
+        return local_edge_cpu, other_edge_cpu
+
     
+    def extract_bandwidth_state(self):
+        bandwidth_value = None
+
+        for key, val in self.resource_table.items():
+            if 'bandwidth' in val:
+                bandwidth_value = val['bandwidth']
+                if key.startswith('edge'):  # 如果是 edge，立即返回
+                    print(key, bandwidth_value)
+                    break
+
+        return bandwidth_value
+    
+    
+
     def check_done(self):
         self.task_count += 1
         done = self.task_count >= self.max_count

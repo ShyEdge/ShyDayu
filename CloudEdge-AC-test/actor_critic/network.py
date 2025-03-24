@@ -1,10 +1,12 @@
 import threading
-#import gym 
+#import gym  # type: ignore 
 #from gym import spaces  # type: ignore
 import torch # type: ignore
 import torch.nn.functional as F  # type: ignore
 import numpy as np   # type: ignore
+import random
 from . import rl_utils 
+from collections import deque
 
 
 class PolicyNet(torch.nn.Module):
@@ -33,7 +35,6 @@ class ActorCritic:
     def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
                  gamma, device):
         # 策略网络
-        
         self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
         self.critic = ValueNet(state_dim, hidden_dim).to(device)  
         # 策略网络优化器
@@ -48,6 +49,10 @@ class ActorCritic:
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)   # 动作概率分布
 
+        print("------------------------probs是------------------------------")
+        print(probs)
+        print("-------------------------------------------------------------")
+
         action_dist = torch.distributions.Categorical(probs)
         
         action = action_dist.sample()
@@ -56,8 +61,12 @@ class ActorCritic:
     
 
     def update(self, transition_dict):
+
+        #print("*****************************************************env update*****************************************************")
+
         states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
+                              dtype=torch.float).to(self.device)     
+
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(
             self.device)
         rewards = torch.tensor(transition_dict['rewards'],
@@ -66,6 +75,13 @@ class ActorCritic:
                                    dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
+        
+        print("*****************************************************update content*****************************************************")
+        print(f"states是{states}")
+        print(f"actions是{actions}")
+        print(f"rewards是{rewards}")
+        #print(f"dones是{dones}")
+        print("************************************************************************************************************************")
 
         # 时序差分目标
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -
@@ -78,69 +94,93 @@ class ActorCritic:
             F.mse_loss(self.critic(states), td_target.detach()))  #td_target 本身是由 Critic 计算出来的，所以它 包含 Critic 网络的计算图，如果不 detach()，它的梯度可能会影响 Critic 网络的学习，我们希望让td_target.detach()只是个常量
         self.actor_optimizer.zero_grad()
         self.critic_optimizer.zero_grad()
-        actor_loss.backward()  # 计算策略网络的梯度
-        critic_loss.backward()  # 计算价值网络的梯度
+        actor_loss.backward() 
+        critic_loss.backward() 
+        self.actor_optimizer.step() 
+        self.critic_optimizer.step() 
 
-
-        # 输出 Actor 网络的梯度
-        print("Actor gradients:")
-        for name, param in self.actor.named_parameters():
-            if param.grad is not None:
-                print(f"{name}: {param.grad.norm().item()}")  # 也可以用 param.grad 来查看完整梯度
-
-        # 输出 Critic 网络的梯度
-        print("Critic gradients:")
-        for name, param in self.critic.named_parameters():
-            if param.grad is not None:
-                print(f"{name}: {param.grad.norm().item()}")
-                self.actor_optimizer.step()  # 更新策略网络的参数
-                self.critic_optimizer.step()  # 更新价值网络的参数
 
 
 
 class CloudEdgeEnv():
     def __init__(self, device_info=None, cloud_device=None):
         self.device_info = device_info
-        self.device_list = [cloud_device] + list(self.device_info.values())  #按yaml顺序
+        self.device_list = list(self.device_info.values()) + [cloud_device]  #按yaml顺序
+        self.local_edge = self.device_list[0]
+        self.other_edges = self.device_list[1:-1]
 
         self.device_info['cloud'] = cloud_device
+
         self.resource_table = None
-        
-        self.selected_device = cloud_device
+
+        self.selected_device = [cloud_device, cloud_device]
 
         self.condition = threading.Condition()
 
         self.delay = 0
         self.task_count = 0
-        self.max_count = 5
+        self.max_count = 50
+
+        self.reward_list = []
+        self.reward_list_avg = []
+        self.delay_list = []
+        self.delay_list_avg = []
+
+        self.state_buffer = deque([(0, 0.6)] * 5, maxlen=5)
         
         # 状态空间：负载
-        self.observation_space_shape = (len(device_info),)
+        self.observation_space_shape = 10
 
-        # 动作空间，目前做的1阶段的
-        self.action_space_n = len(device_info)
+        #两阶段只有6种可能
+        self.action_space_n = 6  
 
-        print(self.device_list)
 
     def reset(self):
-        new_state = np.full(len(self.device_info), 50, dtype=np.float32)
-        return new_state
+        return self.get_state_buffer()
 
 
     def step(self, action):  #执行一个动作并返回环境的下一个状态、奖励、是否完成以及附加信息    
+        '''
+        if action == self.action_space_n - 1:
+            self.selected_device = [self.device_info['cloud'], self.device_info['cloud']]
+        else:
+            # action 对 x 取模后，选择对应的设备
+            x = len(self.device_info)
+            idx1 = action // x  
+            idx2 = action % x  
+            self.selected_device = [self.device_list[idx1], self.device_list[idx2]]
+        '''
+        selected_edge = random.choice(self.other_edges)
+        if action == 0:
+            self.selected_device = [self.local_edge, self.local_edge]
+        elif action == 1:
+            self.selected_device = [self.local_edge, selected_edge]
+        elif action == 2:
+            self.selected_device = [self.local_edge, self.device_info['cloud']]
+        elif action == 3:
+            self.selected_device = [selected_edge, selected_edge]
+        elif action == 4:
+            self.selected_device = [selected_edge, self.device_info['cloud']]
+        elif action == 5:
+            self.selected_device = [self.device_info['cloud'], self.device_info['cloud']]
+        else:
+            raise ValueError("Invalid action")
 
-        self.selected_device = self.device_list[action]
+        #print("*****************************************************drl step wait for condition*****************************************************")
+        with self.condition: 
+            self.condition.notify_all() 
+            self.condition.wait()  
+        #print("*****************************************************drl step wait for condition end*************************************************")
+        
+        reward = self.compute_reward(self.delay)
 
-        with self.condition:  # 进入临界区，确保同步
-            # 通知 get_schedule_plan() 设备已选择
-            self.condition.notify_all()  # 唤醒等待的线程
-            self.condition.wait()  # 阻塞等待条件满足，直到其他线程通知它
+        self.state_buffer.append((action, reward))
 
-        reward = -self.delay
+        self.display_rewards(self.delay, reward)
 
         done = self.check_done()    #执行指定数量的task后作为结束标志
 
-        return self.extract_cpu_state(), reward, done, {}  
+        return self.get_state_buffer(), reward, done, {}  
 
 
     def update_resource_table(self, resource_table):   
@@ -149,28 +189,42 @@ class CloudEdgeEnv():
     def update_delay(self, delay):
         self.delay = delay
 
+    def set_local_edge(self, local_edge):
+        self.local_edge = local_edge
+
+    def get_selected_device(self):
+        return self.selected_device
 
     def extract_cpu_state(self):
-        # 提取 cloud.kubeedge 的 CPU 负载
-        cloud_cpu = self.resource_table.get("cloud.kubeedge", {}).get("cpu", 0)
 
-        # 提取所有 edge 设备，并按 edge 编号排序
-        edge_cpus = []
-        for key, value in self.resource_table.items():
-            if key.startswith("edge"):
-                try:
-                    edge_num = int(key[4:])  # 提取 edge 设备编号
-                    edge_cpus.append((edge_num, value.get("cpu", 0)))
-                except ValueError:
-                    continue  # 跳过无法解析的 edge 设备名
+        local_edge_cpu = None  
+        other_edge_cpu = None  
 
-        # 按编号排序
-        edge_cpus.sort()
+        for key, val in self.resource_table.items():
+            if key.startswith('edge'):
+                if 'cpu' in val:
+                    if key == self.local_edge:
+                        local_edge_cpu = val['cpu']
+                    else:
+                        other_edge_cpu = val['cpu']
 
-        # 生成最终的状态向量
-        state = [cloud_cpu] + [cpu for _, cpu in edge_cpus]
-        return np.array(state, dtype=np.float32)
+        return local_edge_cpu, other_edge_cpu
+
     
+    def extract_bandwidth_state(self):
+        bandwidth_value = None
+
+        for key, val in self.resource_table.items():
+            if 'bandwidth' in val:
+                bandwidth_value = val['bandwidth']
+                if key.startswith('edge'):  # 如果是 edge，立即返回
+                    print(key, bandwidth_value)
+                    break
+
+        return bandwidth_value
+    
+    
+
     def check_done(self):
         self.task_count += 1
         done = self.task_count >= self.max_count
@@ -178,28 +232,48 @@ class CloudEdgeEnv():
             self.task_count = 0
         return done
     
-    def get_selected_device(self):
-        return self.selected_device
+    def display_rewards(self, delay, reward):
+        self.delay_list.append(delay)
+        self.reward_list.append(reward)
+        list_length = len(self.reward_list)
+    
+        if list_length % self.max_count == 0:
+            avg_reward = sum(self.reward_list[-self.max_count:]) / self.max_count  
+            self.reward_list_avg.append(avg_reward)
+            print(f"reward_list_avg的内容是{self.reward_list_avg}")
 
+            avg_delay = sum(self.delay_list[-self.max_count:]) / self.max_count  
+            self.delay_list_avg.append(avg_delay)
+            print(f"delay_list_avg的内容是{self.delay_list_avg}")
 
+    def compute_reward(self, delay):
+        if delay < 0.5:
+            return 1.0
+        elif 0.5 <= delay < 0.7:
+            return 0.5
+        elif 0.7 <= delay < 0.9:
+            return 0.2
+        elif 0.9 <= delay < 1.5:
+            return -0.5
+        else:
+            return -1.5
+
+    def get_state_buffer(self):
+        state = np.array(self.state_buffer).flatten()
+        return state
 
 def train_actorcritic_on_policy(env):
-    # 训练参数
+    
     actor_lr = 1e-3
     critic_lr = 1e-2
-    num_episodes = 200
+    num_episodes = 1000
     hidden_dim = 128
     gamma = 0.98  # 奖励折扣
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    state_dim = env.observation_space_shape[0]
+    state_dim = env.observation_space_shape
     action_dim = env.action_space_n
 
-    #print(f"state_dim is {state_dim}")
-    #print(f"action_dim is {action_dim}")
-
-    # 创建 Actor-Critic 智能体
     agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, gamma, device)
 
-    # 训练智能体 
     rl_utils.train_on_policy_agent_CloudEdge(env, agent, num_episodes)

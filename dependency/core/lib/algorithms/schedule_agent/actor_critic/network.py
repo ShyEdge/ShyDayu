@@ -65,7 +65,7 @@ class StateBuffer:
         self.last_task_obj_size.append(obj_size)  
 
     def get_state_vector(self):
-        """将 deque 数据转换为 1D NumPy 数组"""
+        """将 deque 数据转换为 2D NumPy 数组"""
         return np.array([
             list(self.cpu_local),
             list(self.cpu_other),
@@ -278,7 +278,7 @@ class CloudEdgeEnv():
 
         delay = self.scenario['delay']
 
-        obj_num = self.scenario['ojb_num']
+        obj_num = self.scenario['obj_num']
         obj_size = self.scenario['obj_size']
 
         obj_num_avg = np.mean(obj_num) if len(obj_num) > 0 else 0

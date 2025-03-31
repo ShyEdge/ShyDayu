@@ -199,9 +199,14 @@ class CloudEdgeEnv():
 
         self.condition = threading.Condition()
 
-        self.scenario = None
+        self.scenario = {
+            "delay": 1,
+            "obj_num": [0],
+            "obj_size": [0]
+        }
+        
         self.task_count = 0
-        self.max_count = 50
+        self.max_count = 30
 
         self.reward_list = []
         self.reward_list_avg = []
@@ -280,8 +285,9 @@ class CloudEdgeEnv():
         bandwidth_local, bandwidth_other = self.extract_bandwidth_state()
 
         #避免none导致的报错
-        if self.scenario is None:
-            self.scenario = {}
+        #if self.scenario is None:
+        #    self.scenario = {}
+
         delay = self.scenario.get('delay', 1)
         obj_num = self.scenario.get('obj_num', [0])
         obj_size = self.scenario.get('obj_size', [0])

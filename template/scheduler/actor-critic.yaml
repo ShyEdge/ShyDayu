@@ -27,8 +27,8 @@ pod-template:
             },
             "train_parameters": {
               "reward_alpha": 1.0,
-              "reward_beta": 2.0,
-              "reward_c": 5,
+              "reward_beta": 0.0,
+              "reward_c": 0.6,
             }
 
           }

@@ -309,8 +309,8 @@ class CloudEdgeEnv():
 
     def extract_cpu_state(self):
 
-        local_edge_cpu = None  
-        other_edge_cpu = None  
+        local_edge_cpu = None  #TODO 报错
+        other_edge_cpu = None  #TODO 报错
 
         for key, val in self.resource_table.items():
             if key.startswith('edge'):
@@ -368,6 +368,10 @@ class CloudEdgeEnv():
         reward = -alpha * delay - beta * load_balance + c
 
         return reward
+
+
+
+
 
 
 def train_actorcritic_on_policy(env):

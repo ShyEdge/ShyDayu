@@ -43,6 +43,15 @@ scheduler-policies:
       controller: controller-base.yaml
       distributor: distributor-base.yaml
       monitor: monitor-base.yaml
+
+  - id: ppo
+    name: PPO Policy
+    yaml: ppo.yaml
+    dependency:
+      generator: generator-base.yaml
+      controller: controller-base.yaml
+      distributor: distributor-base.yaml
+      monitor: monitor-base.yaml
   
   - id: hei
     name: Hierarchical Embodied Intelligence

@@ -257,7 +257,7 @@ class CloudEdgeEnv():
     def compute_reward(self, delay):
         c = self.train_parameters['reward_c']
         reward = c - delay
-        return reward
+        return max(reward, -3)  #clip   
 
 
 

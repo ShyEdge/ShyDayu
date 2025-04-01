@@ -104,26 +104,17 @@ class PPO:
 class StateBuffer:
     def __init__(self, maxlen=1):
         self.maxlen = maxlen 
-        
-        self.cpu_local = deque(maxlen=maxlen)
-        self.cpu_other = deque(maxlen=maxlen)
         self.bandwidth = deque(maxlen=maxlen)
 
         for _ in range(maxlen):
-            self.cpu_local.append(0)
-            self.cpu_other.append(0)
             self.bandwidth.append(0)
 
-    def update(self, cpu_local, cpu_other, bandwidth):
-        self.cpu_local.append(cpu_local)
-        self.cpu_other.append(cpu_other)
+    def update(self, bandwidth):
         self.bandwidth.append(bandwidth)
 
 
     def get_state_vector(self):
         return np.array([
-            list(self.cpu_local),
-            list(self.cpu_other),
             list(self.bandwidth),
         ]).flatten()
 
@@ -212,9 +203,8 @@ class CloudEdgeEnv():
         self.train_parameters = train_parameters
 
     def get_new_state(self):
-        cpu_local, cpu_other = self.extract_cpu_state()
         bandwidth = self.extract_bandwidth_state()
-        self.state_buffer.update(cpu_local, cpu_other, bandwidth)
+        self.state_buffer.update(bandwidth)
         return self.state_buffer.get_state_vector()
 
     def extract_cpu_state(self):
@@ -283,7 +273,7 @@ def train_ppo_on_policy(env):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
         "cpu")
 
-    state_dim = 3
+    state_dim = 1
     action_dim = 6
 
     agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,

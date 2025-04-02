@@ -1,5 +1,5 @@
 import abc
-from core.lib.common import ClassFactory, ClassType, Context
+from core.lib.common import ClassFactory, ClassType
 
 from .base_agent import BaseAgent
 
@@ -13,40 +13,49 @@ class FixedAgent(BaseAgent, abc.ABC):
         self.agent_id = agent_id
         self.cloud_device = system.cloud_device
         self.fixed_policy = fixed_policy
-        self.services_allocate = Context.get_algorithm('SCH_SERVICES_ALLOCATE')
+        self.last_delay = 0
+        self.sum_delay = 0
+        self.delay_list = []
+        self.cnt = 50
 
     def get_schedule_plan(self, info):
-
-        print(f"fixedagent中的输入info是 {info}")    
-
         if self.fixed_policy is None:
             return self.fixed_policy
 
         policy = self.fixed_policy.copy()
-        #edge_device = info['device']
+        edge_device = info['device']
         cloud_device = self.cloud_device
-
-        device_info= policy['device_info']
-
-        device_info["device_cloud"] = cloud_device
-
-        pipe_segs= policy['pipeline']
+        pipe_seg = policy['pipeline']
         pipeline = info['pipeline']
-        pipeline=self.services_allocate(pipe_segs, device_info, pipeline)
+        pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                   [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+            
+        self.sum_delay += self.last_delay
+        self.cnt -= 1
+
+        if self.cnt == 0:    
+            self.delay_list.append(self.sum_delay/50)
+            self.cnt = 50
+            self.sum_delay = 0
+            print(self.delay_list)
 
         policy.update({'pipeline': pipeline})
-
-        print("-----------------------------------------------------------------------------------------------")
-        print("fixedagent中的policy是: ",policy)
-        print("-----------------------------------------------------------------------------------------------")
-
         return policy
 
     def run(self):
         pass
 
     def update_scenario(self, scenario):
-        pass
+        if scenario is None:
+            self.last_delay = 1  
+            return 
+        
+        if 'delay' not in scenario:
+            self.last_delay = 1
+            return 
+            
+        self.last_delay = scenario['delay']
+
 
     def update_resource(self, device, resource):
         pass

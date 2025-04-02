@@ -97,6 +97,9 @@ def train_on_policy_agent_CloudEdge(env, agent, num_episodes):
         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
         done = False
         epsilon = max(min_epsilon, start_epsilon * (decay_rate ** i))
+
+        print(f"epsilon is {epsilon}")
+
         while not done:
             action = agent.take_action(state, epsilon)
             next_state, reward, done, _ = env.step(action)

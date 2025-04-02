@@ -53,11 +53,13 @@ class PPO:
         print(f"probs is {probs}")
         print("--------------------------------------------------------------")
 
-        action_dist = torch.distributions.Categorical(probs)
-
         if np.random.rand() < epsilon:  
-            action = np.random.choice(len(probs[0]))  
+            action = np.random.choice(len(probs[0]))
+        elif probs is None or torch.isnan(probs).any():
+            print("Warning: probs is None or contains NaN, selecting random action")
+            action = np.random.choice(len(probs[0]))     
         else: 
+            action_dist = torch.distributions.Categorical(probs)
             action = action_dist.sample().item()
         
         return action

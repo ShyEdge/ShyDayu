@@ -1,12 +1,12 @@
 position: cloud
 pod-template:
-  image: scheduler
+  image: scheduler:shy-ppo
   imagePullPolicy: IfNotPresent
   env:
     - name: SCH_CONFIG_NAME
       value: simple
     - name: SCH_SCENARIO_NAME
-      value: simple
+      value: actorcritic
     - name: SCH_STARTUP_NAME
       value: fixed
     - name: SCH_POLICY_NAME

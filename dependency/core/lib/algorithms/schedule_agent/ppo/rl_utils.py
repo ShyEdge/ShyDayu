@@ -88,14 +88,17 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
                 
 def train_on_policy_agent_CloudEdge(env, agent, num_episodes):
-    #return_list = []
+    start_epsilon = 1.0
+    min_epsilon = 0.01
+    decay_rate = 0.95
+
     state = env.reset()  
     for i in range(num_episodes):
-    #   episode_return = 0
         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
         done = False
+        epsilon = max(min_epsilon, start_epsilon * (decay_rate ** i))
         while not done:
-            action = agent.take_action(state)
+            action = agent.take_action(state, epsilon)
             next_state, reward, done, _ = env.step(action)
             transition_dict['states'].append(state)
             transition_dict['actions'].append(action)
@@ -103,7 +106,4 @@ def train_on_policy_agent_CloudEdge(env, agent, num_episodes):
             transition_dict['rewards'].append(reward)
             transition_dict['dones'].append(done)
             state = next_state
-    #       episode_return += reward
-    #   return_list.append(episode_return)
         agent.update(transition_dict)
-    #return return_list

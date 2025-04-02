@@ -45,7 +45,7 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
-    def take_action(self, state):
+    def take_action(self, state, epsilon):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)
 
@@ -54,8 +54,13 @@ class PPO:
         print("--------------------------------------------------------------")
 
         action_dist = torch.distributions.Categorical(probs)
-        action = action_dist.sample()
-        return action.item()
+
+        if np.random.rand() < epsilon:  
+            action = np.random.choice(len(probs[0]))  
+        else: 
+            action = action_dist.sample().item()
+        
+        return action
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'],
@@ -69,7 +74,6 @@ class PPO:
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
         
-
         print("--------------------------------------------------------------")
         print(f"states is {states}")
         print(f"actions is {actions}")

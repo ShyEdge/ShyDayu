@@ -90,7 +90,7 @@ def compute_advantage(gamma, lmbda, td_delta):
 def train_on_policy_agent_CloudEdge(env, agent, num_episodes):
     start_epsilon = 1.0
     min_epsilon = 0.01
-    decay_rate = 0.95
+    decay_rate = 0.90
 
     state = env.reset()  
     for i in range(num_episodes):

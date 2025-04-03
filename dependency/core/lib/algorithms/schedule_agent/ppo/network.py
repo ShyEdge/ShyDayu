@@ -87,7 +87,7 @@ class PPO:
         old_log_probs = torch.log(self.actor(states).gather(1,
                                                             actions)).detach()
 
-        beta = 0.1  # 熵正则项系数
+        # beta = 0.1  # 熵正则项系数
 
         for _ in range(self.epochs):
             log_probs = torch.log(self.actor(states).gather(1, actions))
@@ -98,18 +98,18 @@ class PPO:
             actor_loss = torch.mean(-torch.min(surr1, surr2))  # PPO损失函数
 
             # 计算策略熵并加入损失
-            entropy = torch.distributions.Categorical(self.actor(states)).entropy().mean()
-            actor_loss -= beta * entropy
+            # entropy = torch.distributions.Categorical(self.actor(states)).entropy().mean()
+            # actor_loss -= beta * entropy
 
             critic_loss = torch.mean(
                 F.mse_loss(self.critic(states), td_target.detach()))
             
             if _ == 0:
-                self.entropy_list.append(entropy.item())
+                #self.entropy_list.append(entropy.item())
                 self.actor_loss_list.append(actor_loss.item())
                 self.critic_loss_list.append(critic_loss.item())    
 
-                print(f"entropy_list is {self.entropy_list}")
+                #print(f"entropy_list is {self.entropy_list}")
                 print(f"actor_loss_list is {self.actor_loss_list}")
                 print(f"critic_loss_list is {self.critic_loss_list}")
 

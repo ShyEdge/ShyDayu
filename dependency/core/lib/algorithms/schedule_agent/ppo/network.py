@@ -105,9 +105,9 @@ class PPO:
                 F.mse_loss(self.critic(states), td_target.detach()))
             
             if _ == 0:
-                self.entropy_list.append(entropy)
-                self.actor_loss_list.append(actor_loss)
-                self.critic_loss_list.append(critic_loss)    
+                self.entropy_list.append(entropy.item())
+                self.actor_loss_list.append(actor_loss.item())
+                self.critic_loss_list.append(critic_loss.item())    
 
                 print(f"entropy_list is {self.entropy_list}")
                 print(f"actor_loss_list is {self.actor_loss_list}")
@@ -130,7 +130,7 @@ class StateBuffer:
             self.bandwidth.append(0)
 
     def update(self, bandwidth):
-        self.bandwidth.append(bandwidth)
+        self.bandwidth.append(bandwidth / 100.0)
 
 
     def get_state_vector(self):

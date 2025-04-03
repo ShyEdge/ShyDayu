@@ -45,7 +45,7 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
-    def take_action(self, state, epsilon):
+    def take_action(self, state):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)
 
@@ -53,14 +53,8 @@ class PPO:
         print(f"probs is {probs}")
         print("--------------------------------------------------------------")
 
-        if np.random.rand() < epsilon:  
-            action = np.random.choice(len(probs[0]))
-        elif probs is None or torch.isnan(probs).any():
-            print("Warning: probs is None or contains NaN, selecting random action")
-            action = np.random.choice(len(probs[0]))     
-        else: 
-            action_dist = torch.distributions.Categorical(probs)
-            action = action_dist.sample().item()
+        action_dist = torch.distributions.Categorical(probs)
+        action = action_dist.sample().item()
         
         return action
 
@@ -90,6 +84,8 @@ class PPO:
         old_log_probs = torch.log(self.actor(states).gather(1,
                                                             actions)).detach()
 
+        beta = 0.01  # 熵正则项系数
+
         for _ in range(self.epochs):
             log_probs = torch.log(self.actor(states).gather(1, actions))
             ratio = torch.exp(log_probs - old_log_probs)
@@ -97,8 +93,16 @@ class PPO:
             surr2 = torch.clamp(ratio, 1 - self.eps,
                                 1 + self.eps) * advantage  # 截断
             actor_loss = torch.mean(-torch.min(surr1, surr2))  # PPO损失函数
+
+            # 计算策略熵并加入损失
+            entropy = torch.distributions.Categorical(self.actor(states)).entropy().mean()
+            actor_loss -= beta * entropy
+
             critic_loss = torch.mean(
                 F.mse_loss(self.critic(states), td_target.detach()))
+            
+            print(f"entropy is {entropy};actor_loss is {actor_loss};critic_loss is {critic_loss}")
+
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
             actor_loss.backward()
@@ -142,7 +146,7 @@ class CloudEdgeEnv():
         self.condition = threading.Condition()
 
         self.task_count = 0
-        self.max_count = 50
+        self.max_count = 20
 
         self.reward_list = []
         self.reward_list_avg = []

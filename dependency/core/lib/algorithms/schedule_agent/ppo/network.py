@@ -45,6 +45,11 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
+        self.actor_loss_list = []
+        self.critic_loss_list = []
+        self.entropy_list = []
+
+
     def take_action(self, state):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)
@@ -70,11 +75,9 @@ class PPO:
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
         
-        print("--------------------------------------------------------------")
         print(f"states is {states}")
         print(f"actions is {actions}")
         print(f"rewards is {rewards}")
-        print("--------------------------------------------------------------")
 
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -
                                                                        dones)
@@ -84,7 +87,7 @@ class PPO:
         old_log_probs = torch.log(self.actor(states).gather(1,
                                                             actions)).detach()
 
-        beta = 0.01  # 熵正则项系数
+        beta = 0.1  # 熵正则项系数
 
         for _ in range(self.epochs):
             log_probs = torch.log(self.actor(states).gather(1, actions))
@@ -101,7 +104,14 @@ class PPO:
             critic_loss = torch.mean(
                 F.mse_loss(self.critic(states), td_target.detach()))
             
-            print(f"entropy is {entropy};actor_loss is {actor_loss};critic_loss is {critic_loss}")
+            if _ == 0:
+                self.entropy_list.append(entropy)
+                self.actor_loss_list.append(actor_loss)
+                self.critic_loss_list.append(critic_loss)    
+
+                print(f"entropy_list is {self.entropy_list}")
+                print(f"actor_loss_list is {self.actor_loss_list}")
+                print(f"critic_loss_list is {self.critic_loss_list}")
 
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
@@ -146,7 +156,7 @@ class CloudEdgeEnv():
         self.condition = threading.Condition()
 
         self.task_count = 0
-        self.max_count = 20
+        self.max_count = 50
 
         self.reward_list = []
         self.reward_list_avg = []

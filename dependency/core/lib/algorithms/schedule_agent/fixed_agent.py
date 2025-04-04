@@ -33,14 +33,14 @@ class FixedAgent(BaseAgent, abc.ABC):
             if random.random() < policy['prob']:
                 # 1/3 概率第一阶段任务在 edge8 执行
                 pipeline = [{**p, 'execute_device': 'edge8'} for p in pipeline[:pipe_seg]] + \
-                        [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+                        [{**p, 'execute_device': 'edge8'} for p in pipeline[pipe_seg:]]
             else:
                 # 其余情况还是在 edge3 执行
-                pipeline = [{**p, 'execute_device': cloud_device} for p in pipeline[:pipe_seg]] + \
-                        [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+                pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                        [{**p, 'execute_device': edge_device} for p in pipeline[pipe_seg:]]
         else:
-            pipeline = [{**p, 'execute_device': cloud_device} for p in pipeline[:pipe_seg]] + \
-                    [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+            pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                    [{**p, 'execute_device': edge_device} for p in pipeline[pipe_seg:]]
         
 
             

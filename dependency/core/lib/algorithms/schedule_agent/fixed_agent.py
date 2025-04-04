@@ -36,10 +36,10 @@ class FixedAgent(BaseAgent, abc.ABC):
                         [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
             else:
                 # 其余情况还是在 edge3 执行
-                pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                pipeline = [{**p, 'execute_device': cloud_device} for p in pipeline[:pipe_seg]] + \
                         [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
         else:
-            pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+            pipeline = [{**p, 'execute_device': cloud_device} for p in pipeline[:pipe_seg]] + \
                     [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
         
 

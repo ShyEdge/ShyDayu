@@ -14,7 +14,7 @@ source_list:
     url: ""
     dir: "shy_blank"
     metadata:
-      resolution: "1080p"
+      resolution: "540p"
       fps: 30
       encoding: "mp4v"
       buffer_size: 4

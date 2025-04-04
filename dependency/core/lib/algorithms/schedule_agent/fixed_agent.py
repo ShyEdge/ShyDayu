@@ -1,4 +1,5 @@
 import abc
+import random
 from core.lib.common import ClassFactory, ClassType
 
 from .base_agent import BaseAgent
@@ -27,8 +28,21 @@ class FixedAgent(BaseAgent, abc.ABC):
         cloud_device = self.cloud_device
         pipe_seg = policy['pipeline']
         pipeline = info['pipeline']
-        pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
-                   [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+        
+        if edge_device == 'edge3':
+            if random.random() < policy['prob']:
+                # 1/3 概率第一阶段任务在 edge8 执行
+                pipeline = [{**p, 'execute_device': 'edge8'} for p in pipeline[:pipe_seg]] + \
+                        [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+            else:
+                # 其余情况还是在 edge3 执行
+                pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                        [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+        else:
+            pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                    [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
+        
+
             
         self.sum_delay += self.last_delay
         self.cnt -= 1

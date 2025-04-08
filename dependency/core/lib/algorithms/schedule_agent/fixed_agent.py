@@ -28,15 +28,10 @@ class FixedAgent(BaseAgent, abc.ABC):
         pipe_seg = policy['pipeline']
         pipeline = info['pipeline']
         
-        if(edge_device=='edge3'):
-            pipeline = [{**p, 'execute_device': 'edge3'} for p in pipeline[:1]] + \
-                    [{**p, 'execute_device': 'edge8'} for p in pipeline[1:]]
-        else:
-            pipeline = [{**p, 'execute_device': cloud_device} for p in pipeline[:1]] + \
-                    [{**p, 'execute_device': cloud_device} for p in pipeline[1:]]
+
+        pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                    [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]
             
-
-
 
             
         self.sum_delay += self.last_delay

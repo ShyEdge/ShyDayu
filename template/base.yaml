@@ -23,7 +23,7 @@ scheduler-policies:
     yaml: fixed-policy.yaml
     dependency:
       generator: generator-base.yaml
-      controller: controller-base.yaml
+      controller: controller-nondisplay.yaml
       distributor: distributor-base.yaml
       monitor: monitor-base.yaml
   - id: loadbased
@@ -31,7 +31,7 @@ scheduler-policies:
     yaml: loadbased-policy.yaml
     dependency:
       generator: generator-base.yaml
-      controller: controller-base.yaml
+      controller: controller-nondisplay.yaml
       distributor: distributor-base.yaml
       monitor: monitor-base.yaml
 
@@ -40,7 +40,7 @@ scheduler-policies:
     yaml: actor-critic.yaml
     dependency:
       generator: generator-base.yaml
-      controller: controller-base.yaml
+      controller: controller-nondisplay.yaml
       distributor: distributor-base.yaml
       monitor: monitor-base.yaml
 
@@ -49,7 +49,7 @@ scheduler-policies:
     yaml: ppo.yaml
     dependency:
       generator: generator-base.yaml
-      controller: controller-base.yaml
+      controller: controller-nondisplay.yaml
       distributor: distributor-base.yaml
       monitor: monitor-base.yaml
   

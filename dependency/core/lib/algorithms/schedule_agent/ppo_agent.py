@@ -39,7 +39,6 @@ class PPOAgent(BaseAgent, abc.ABC):
 
 
     def run(self):
-        time.sleep(10)
         train_ppo_on_policy(self.env)
 
     def update_scenario(self, scenario):

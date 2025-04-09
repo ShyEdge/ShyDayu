@@ -58,9 +58,9 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
-        self.actor_loss_list = []
-        self.critic_loss_list = []
-        self.entropy_list = []
+        #self.actor_loss_list = []
+        #self.critic_loss_list = []
+        #self.entropy_list = []
 
 
     def take_action(self, state):
@@ -117,6 +117,7 @@ class PPO:
             critic_loss = torch.mean(
                 F.mse_loss(self.critic(states), td_target.detach()))
             
+            '''
             if _ == 0:
                 #self.entropy_list.append(entropy.item())
                 self.actor_loss_list.append(actor_loss.item())
@@ -125,6 +126,7 @@ class PPO:
                 #print(f"entropy_list is {self.entropy_list}")
                 print(f"actor_loss_list is {self.actor_loss_list}")
                 print(f"critic_loss_list is {self.critic_loss_list}")
+            '''
 
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
@@ -132,7 +134,7 @@ class PPO:
             critic_loss.backward()
             self.actor_optimizer.step()
             self.critic_optimizer.step()
-
+        
 
 class StateBuffer:
     def __init__(self, maxlen=8):
@@ -228,7 +230,7 @@ class CloudEdgeEnv():
         self.train_parameters = train_parameters
 
     def get_new_state(self):
-        time.sleep(1)
+        time.sleep(0.5)
         return self.state_buffer.get_state_vector()
 
     def extract_cpu_state(self, resource_table):

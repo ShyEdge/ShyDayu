@@ -1,4 +1,4 @@
-import abc
+import abc, time
 from core.lib.common import ClassFactory, ClassType, Context
 
 from .base_agent import BaseAgent
@@ -13,7 +13,6 @@ class PPOAgent(BaseAgent, abc.ABC):
     def __init__(self, system, agent_id: int, ppo_policy: dict = None):
         self.agent_id = agent_id
         self.ppo_policy = ppo_policy
-        self.last_task_scenario = None
         self.env = CloudEdgeEnv(ppo_policy['device_info'], system.cloud_device)
         self.env.set_train_parameters(ppo_policy['train_parameters'])
 
@@ -26,21 +25,13 @@ class PPOAgent(BaseAgent, abc.ABC):
         self.env.set_local_edge(local_device)  
 
         pipeline = info['pipeline']
-        resource_table = info['resource_table']
-                
-        self.env.update_resource_table(resource_table)  
-        self.env.update_scenario(self.last_task_scenario)  
-      
-        with self.env.condition:
-            self.env.condition.notify_all()  
-            self.env.condition.wait()  
-        
-        execute_device = self.env.get_selected_device()
+                        
+        execute_device, selected_action = self.env.get_selected_device()
+        self.env.update_decision(selected_action)  #TODO 目前选择的更新时间并不合理
         
         # 修改Pipeline的内容，注意后者必须用[:1]这种，而不能用[0]，会报错
         pipeline = [{**p, 'execute_device': execute_device[0]} for p in pipeline[:1]] + \
            [{**p, 'execute_device': execute_device[1]} for p in pipeline[1:]]
-
 
         policy.update({'pipeline': pipeline})
 
@@ -48,13 +39,19 @@ class PPOAgent(BaseAgent, abc.ABC):
 
 
     def run(self):
+        time.sleep(10)
         train_ppo_on_policy(self.env)
 
     def update_scenario(self, scenario):
-        self.last_task_scenario = scenario
+        if 'delay' in scenario:
+            self.env.update_delay(scenario['delay'])
+        if 'obj_num' in scenario:
+            self.env.update_task_obj_num(scenario['obj_num'])
+        if 'obj_size' in scenario:
+            self.env.update_task_obj_size(scenario['obj_size'])
 
-    def update_resource(self, device, resource):
-        pass
+    def update_resource(self, device, resource, resource_table):
+        self.env.update_resource_state(resource_table)
 
     def update_policy(self, policy):
         pass

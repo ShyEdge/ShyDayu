@@ -1,40 +1,53 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import threading
-import random
+import random, time
 from collections import deque
 from . import rl_utils
 
 
-class PolicyNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim, action_dim):
+class PolicyNet(nn.Module):
+    def __init__(self, state_channels, history_length, hidden_dim, action_dim):
         super(PolicyNet, self).__init__()
-        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, action_dim)
-
+        # 1D卷积层：保持时间步数不变
+        self.conv1 = nn.Conv1d(in_channels=state_channels, out_channels=16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        # 经过两个卷积层后，输出形状为 [batch_size, 32, history_length]
+        # 将卷积输出展平后送入全连接层
+        self.fc = nn.Linear(32 * history_length, hidden_dim)
+        self.out = nn.Linear(hidden_dim, action_dim)
+    
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        return F.softmax(self.fc2(x), dim=1)
+        # x 的输入形状为 [batch_size, channels, history_length]
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = x.view(x.size(0), -1)  # flatten
+        x = F.relu(self.fc(x))
+        return F.softmax(self.out(x), dim=1)
 
-
-class ValueNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim):
+class ValueNet(nn.Module):
+    def __init__(self, state_channels, history_length, hidden_dim):
         super(ValueNet, self).__init__()
-        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, 1)
-
+        self.conv1 = nn.Conv1d(in_channels=state_channels, out_channels=16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        self.fc = nn.Linear(32 * history_length, hidden_dim)
+        self.out = nn.Linear(hidden_dim, 1)
+    
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        return self.fc2(x)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc(x))
+        return self.out(x)
 
 
 class PPO:
     ''' PPO算法,采用截断方式 '''
-    def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
+    def __init__(self, state_dim, hidden_dim, history_length, action_dim, actor_lr, critic_lr,
                  lmbda, epochs, eps, gamma, device):
-        self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
-        self.critic = ValueNet(state_dim, hidden_dim).to(device)
+        self.actor = PolicyNet(state_dim, history_length, hidden_dim, action_dim).to(device)
+        self.critic = ValueNet(state_dim, history_length, hidden_dim).to(device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
                                                 lr=actor_lr)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
@@ -122,21 +135,40 @@ class PPO:
 
 
 class StateBuffer:
-    def __init__(self, maxlen=1):
+    def __init__(self, maxlen=8):
         self.maxlen = maxlen 
-        self.bandwidth = deque(maxlen=maxlen)
+        
+        self.cpu_local = deque(maxlen=maxlen)
+        self.cpu_other = deque(maxlen=maxlen)
+        self.bandwidth_edge_local = deque(maxlen=maxlen)
+        self.bandwidth_edge_other = deque(maxlen=maxlen)
+        self.last_decision = deque(maxlen=maxlen)
+        self.last_delay = deque(maxlen=maxlen)
+        self.last_task_obj_num = deque(maxlen=maxlen)
+        self.last_task_obj_size = deque(maxlen=maxlen)
 
         for _ in range(maxlen):
-            self.bandwidth.append(0)
-
-    def update(self, bandwidth):
-        self.bandwidth.append(bandwidth / 100.0)
-
+            self.cpu_local.append(0)
+            self.cpu_other.append(0)
+            self.bandwidth_edge_local.append(0)
+            self.bandwidth_edge_other.append(0)
+            self.last_decision.append(0)
+            self.last_delay.append(0)
+            self.last_task_obj_num.append(0)  
+            self.last_task_obj_size.append(0)  
 
     def get_state_vector(self):
+        """将 deque 数据转换为 2D NumPy 数组"""
         return np.array([
-            list(self.bandwidth),
-        ]).flatten()
+            list(self.cpu_local),
+            list(self.cpu_other),
+            list(self.bandwidth_edge_local),
+            list(self.bandwidth_edge_other),
+            list(self.last_decision),
+            list(self.last_delay),
+            list(self.last_task_obj_num),
+            list(self.last_task_obj_size)
+        ])
 
 
 class CloudEdgeEnv():
@@ -147,21 +179,13 @@ class CloudEdgeEnv():
         self.other_edges = self.device_list[1:-1]
         self.device_info['cloud'] = cloud_device
 
-        self.resource_table = None
         self.train_parameters = None
-        self.scenario = None
-
-        self.selected_device = [cloud_device, cloud_device]
-
-        self.condition = threading.Condition()
+        self.selected_device = [self.local_edge, self.local_edge]
+        self.selected_action = 0
+        
 
         self.task_count = 0
-        self.max_count = 50
-
-        self.reward_list = []
-        self.reward_list_avg = []
-        self.delay_list = []
-        self.delay_list_avg = []
+        self.max_count = 30
 
         self.state_buffer = StateBuffer()
 
@@ -169,8 +193,8 @@ class CloudEdgeEnv():
         return self.state_buffer.get_state_vector()
 
     def step(self, action):   
-
         selected_edge = random.choice(self.other_edges)
+        self.selected_action = action
         if action == 0:
             self.selected_device = [self.local_edge, self.local_edge]
         elif action == 1:
@@ -185,53 +209,33 @@ class CloudEdgeEnv():
             self.selected_device = [self.device_info['cloud'], self.device_info['cloud']]
         else:
             raise ValueError("Invalid action")
-
-        with self.condition: 
-            self.condition.notify_all() 
-            self.condition.wait()    
         
         new_state = self.get_new_state() 
 
-        if self.scenario is None:
-            self.scenario = {
-                "delay": 1,
-                "obj_num": [0],
-                "obj_size": [0]
-            }
-
-        reward = self.compute_reward(self.scenario['delay'])
-
-        self.display_rewards(self.scenario['delay'], reward)
+        reward = self.compute_reward()
 
         done = self.check_done()   
 
         return new_state, reward, done, {}  
 
-    def update_resource_table(self, resource_table):   
-        self.resource_table = resource_table
-
-    def update_scenario(self, scenario):
-        self.scenario = scenario
-
     def set_local_edge(self, local_edge):
         self.local_edge = local_edge
 
     def get_selected_device(self):
-        return self.selected_device
+        return self.selected_device, self.selected_action
     
     def set_train_parameters(self, train_parameters):
         self.train_parameters = train_parameters
 
     def get_new_state(self):
-        bandwidth = self.extract_bandwidth_state()
-        self.state_buffer.update(bandwidth)
+        time.sleep(1)
         return self.state_buffer.get_state_vector()
 
-    def extract_cpu_state(self):
-        local_edge_cpu = 50
-        other_edge_cpu = 50
+    def extract_cpu_state(self, resource_table):
+        local_edge_cpu = None
+        other_edge_cpu = None
 
-        for key, val in self.resource_table.items():
+        for key, val in resource_table.items():
             if key.startswith('edge'):
                 if 'cpu' in val:
                     if key == self.local_edge:
@@ -241,17 +245,16 @@ class CloudEdgeEnv():
 
         return local_edge_cpu, other_edge_cpu
  
-    def extract_bandwidth_state(self):
+    def extract_bandwidth_state(self, resource_table):
         bandwidth_value = None
 
-        for key, val in self.resource_table.items():
+        for key, val in resource_table.items():
             if 'bandwidth' in val:
                 bandwidth_value = val['bandwidth']
                 if key.startswith('edge'):  # 如果是 edge，立即返回
-                    print(key, bandwidth_value)
                     break
 
-        return bandwidth_value
+        return bandwidth_value, bandwidth_value  #same
     
     def check_done(self):
         self.task_count += 1
@@ -259,25 +262,71 @@ class CloudEdgeEnv():
         if done:
             self.task_count = 0
         return done
-    
-    def display_rewards(self, delay, reward):
-        self.delay_list.append(delay)
-        self.reward_list.append(reward)
-        list_length = len(self.reward_list)
-    
-        if list_length % self.max_count == 0:
-            avg_reward = sum(self.reward_list[-self.max_count:]) / self.max_count  
-            self.reward_list_avg.append(avg_reward)
-            print(f"reward_list_avg的内容是{self.reward_list_avg}")
 
-            avg_delay = sum(self.delay_list[-self.max_count:]) / self.max_count  
-            self.delay_list_avg.append(avg_delay)
-            print(f"delay_list_avg的内容是{self.delay_list_avg}")
+    def compute_reward(self):
+        # 获取 deque 中的最后三项
+        last_three = list(self.state_buffer.last_delay)[-3:]
+        
+        if len(last_three) > 0:
+            avg_delay = sum(last_three) / len(last_three)
+        else:
+            avg_delay = 0  # 如果没有三项数据，返回 0
+        
+        reward = -avg_delay + 1  # 奖励是负的延迟加1（或者根据你的需求调整奖励函数）
+        return reward
 
-    def compute_reward(self, delay):
-        c = self.train_parameters['reward_c']
-        reward = c - delay
-        return max(reward, -3)  #clip   
+    def update_resource_state(self, resource_table):
+        local_edge_cpu, other_edge_cpu = self.extract_cpu_state(resource_table)
+        bandwidth_local, bandwidth_other = self.extract_bandwidth_state(resource_table)
+
+        if local_edge_cpu is not None:
+            self.update_cpu_local(local_edge_cpu)
+        if other_edge_cpu is not None:
+            self.update_cpu_other(other_edge_cpu)
+        
+        if bandwidth_local is not None:
+            self.update_bandwidth_local(bandwidth_local)
+        if bandwidth_other is not None:
+            self.update_bandwidth_other(bandwidth_other)
+
+    def update_cpu_local(self, value):
+        value /= 100
+        self.state_buffer.cpu_local.append(value)
+
+    def update_cpu_other(self, value):
+        value /= 100
+        self.state_buffer.cpu_other.append(value)
+
+    def update_bandwidth_local(self, value):
+        value /= 100
+        self.state_buffer.bandwidth_edge_local.append(value)
+
+    def update_bandwidth_other(self, value):
+        value /= 100
+        self.state_buffer.bandwidth_edge_other.append(value)
+
+    def update_decision(self, value):
+        value /= 5
+        self.state_buffer.last_decision.append(value)
+
+    def update_delay(self, value):
+        self.state_buffer.last_delay.append(value)
+
+    def update_task_obj_num(self, value):
+        if isinstance(value, list) and len(value) > 0:
+            avg = sum(value) / len(value)
+        else:
+            avg = 0
+
+        avg /= 10
+        self.state_buffer.last_task_obj_num.append(avg)
+
+    def update_task_obj_size(self, value):
+        if isinstance(value, list) and len(value) > 0:
+            avg = sum(value) / len(value)
+        else:
+            avg = 0
+        self.state_buffer.last_task_obj_size.append(avg)
 
 
 
@@ -293,10 +342,11 @@ def train_ppo_on_policy(env):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
         "cpu")
 
-    state_dim = 1
+    state_dim = 8
+    history_length = 8
     action_dim = 6
 
-    agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,
+    agent = PPO(state_dim, hidden_dim, history_length, action_dim, actor_lr, critic_lr, lmbda,
             epochs, eps, gamma, device)
 
     rl_utils.train_on_policy_agent_CloudEdge(env, agent, num_episodes)

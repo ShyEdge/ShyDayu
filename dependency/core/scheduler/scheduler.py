@@ -41,11 +41,6 @@ class Scheduler:
         source_id = info['source_id']
         agent = self.schedule_table[source_id]
         
-        #LOGGER.info(f'info内容是 {info}')
-        #LOGGER.info(f'schedule_table内容是 {self.schedule_table}')
-        #LOGGER.info(f'resource_table内容是 {self.resource_table}')
-
-        #向info中增加resource的信息
         info['resource_table']=self.resource_table
         
         plan = agent.get_schedule_plan(info)
@@ -54,7 +49,7 @@ class Scheduler:
             LOGGER.debug('No schedule plan, use startup policy')
             plan = self.startup_policy(info)
 
-        #LOGGER.info(f'[Schedule Plan] Source {source_id}: {plan}')
+        LOGGER.info(f'[Schedule Plan] Source {source_id}: {plan}')
 
         return plan
 
@@ -69,13 +64,15 @@ class Scheduler:
         agent.update_scenario(scenario)
         agent.update_policy(policy)
         agent.update_task(task)
-        #LOGGER.info(f'[Update Scenario] Source {source_id}: {scenario}')
+        LOGGER.info(f'[Update Scenario] Source {source_id}: {scenario}')
 
     def register_resource_table(self, device):
         if device in self.resource_table:
             return
         self.resource_table[device] = {}
-
+    
+    '''
+    #origin:
     def update_scheduler_resource(self, info):
         device = info['device']
         resource = info['resource']
@@ -85,7 +82,20 @@ class Scheduler:
             agent = self.schedule_table[source_id]
             agent.update_resource(device, resource)
 
-        #LOGGER.info(f'[Update Resource] Device {device}: {resource}')
+        LOGGER.info(f'[Update Resource] Device {device}: {resource}')
+    '''
+
+    def update_scheduler_resource(self, info):
+        device = info['device']
+        resource = info['resource']
+        self.resource_table[device] = resource
+
+        for source_id in self.schedule_table:
+            agent = self.schedule_table[source_id]
+            agent.update_resource(device, resource, self.resource_table)
+
+        LOGGER.info(f'[Update Resource] Device {device}: {resource}')
+
 
     def get_scheduler_resource(self):
         return self.resource_table

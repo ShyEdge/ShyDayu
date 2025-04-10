@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import random, time
-from collections import deque
+from collections import deque, OrderedDict
 from . import rl_utils
 
 
@@ -148,6 +148,8 @@ class StateBuffer:
         self.last_delay = deque(maxlen=maxlen)
         self.last_task_obj_num = deque(maxlen=maxlen)
         self.last_task_obj_size = deque(maxlen=maxlen)
+        
+        self.tasks = deque(maxlen=maxlen)
 
         for _ in range(maxlen):
             self.cpu_local.append(0)
@@ -171,6 +173,25 @@ class StateBuffer:
             #list(self.last_task_obj_num),
             #list(self.last_task_obj_size)
         ])
+    
+    def get_reward_info(self):
+        tasks_eval_list = []
+
+        for task in self.tasks:
+            task_id = task.get_task_id()
+            task_total_time = task.calculate_total_time()
+            task_cloud_edge_transmit_time = task.calculate_cloud_edge_transmit_time()
+
+            tasks_eval_list.append({
+                "task_id": task_id,
+                "total_time": task_total_time,
+                "cloud_edge_transmit_time": task_cloud_edge_transmit_time
+            })
+
+        # 按 task_id 从大到小排序
+        sorted_tasks_eval_list = sorted(tasks_eval_list, key=lambda x: x["task_id"], reverse=True)
+
+        return sorted_tasks_eval_list
 
 
 class CloudEdgeEnv():
@@ -182,14 +203,13 @@ class CloudEdgeEnv():
         self.device_info['cloud'] = cloud_device
 
         self.train_parameters = None
-        self.selected_device = [self.local_edge, self.local_edge]
-        self.selected_action = 0
-        
+        self.selected_device = [self.local_edge, self.local_edge]      
 
         self.task_count = 0
         self.max_count = 30
+        self.maxlen = 3
 
-        self.state_buffer = StateBuffer()
+        self.state_buffer = StateBuffer(maxlen=self.maxlen)
 
     def reset(self):
         return self.state_buffer.get_state_vector()
@@ -212,6 +232,9 @@ class CloudEdgeEnv():
         else:
             raise ValueError("Invalid action")
         
+        #做出决策后等待一段时间
+        time.sleep(1)
+
         new_state = self.get_new_state() 
 
         reward = self.compute_reward()
@@ -224,13 +247,12 @@ class CloudEdgeEnv():
         self.local_edge = local_edge
 
     def get_selected_device(self):
-        return self.selected_device, self.selected_action
+        return self.selected_device
     
     def set_train_parameters(self, train_parameters):
         self.train_parameters = train_parameters
 
     def get_new_state(self):
-        time.sleep(0.5)
         return self.state_buffer.get_state_vector()
 
     def extract_cpu_state(self, resource_table):
@@ -266,16 +288,17 @@ class CloudEdgeEnv():
         return done
 
     def compute_reward(self):
-        # 获取 deque 中的最后三项
-        last_three = list(self.state_buffer.last_delay)[-3:]
-        
-        if len(last_three) > 0:
-            avg_delay = sum(last_three) / len(last_three)
-        else:
-            avg_delay = 0  # 如果没有三项数据，返回 0
-        
-        reward = -avg_delay + 1  # 奖励是负的延迟加1（或者根据你的需求调整奖励函数）
+        sorted_tasks_eval_list = self.state_buffer.get_reward_info()
+
+        n = 3
+        top_n_tasks = sorted_tasks_eval_list[:n]  
+        total_time_sum = sum([task["total_time"] for task in top_n_tasks])
+        avg_total_time = total_time_sum / n if n > 0 else 0
+
+        reward = -avg_total_time + 1
+
         return reward
+
 
     def update_resource_state(self, resource_table):
         local_edge_cpu, other_edge_cpu = self.extract_cpu_state(resource_table)
@@ -330,7 +353,8 @@ class CloudEdgeEnv():
             avg = 0
         self.state_buffer.last_task_obj_size.append(avg)
 
-
+    def update_tasks(self, task):
+        self.state_buffer.tasks.append(task)
 
 def train_ppo_on_policy(env):
     actor_lr = 1e-3

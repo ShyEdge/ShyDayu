@@ -49,7 +49,7 @@ class Scheduler:
             LOGGER.debug('No schedule plan, use startup policy')
             plan = self.startup_policy(info)
 
-        LOGGER.info(f'[Schedule Plan] Source {source_id}: {plan}')
+        #LOGGER.info(f'[Schedule Plan] Source {source_id}: {plan}')
 
         return plan
 
@@ -64,7 +64,7 @@ class Scheduler:
         agent.update_scenario(scenario)
         agent.update_policy(policy)
         agent.update_task(task)
-        LOGGER.info(f'[Update Scenario] Source {source_id}: {scenario}')
+        #LOGGER.info(f'[Update Scenario] Source {source_id}: {scenario}')
 
     def register_resource_table(self, device):
         if device in self.resource_table:
@@ -94,7 +94,7 @@ class Scheduler:
             agent = self.schedule_table[source_id]
             agent.update_resource(device, resource, self.resource_table)
 
-        LOGGER.info(f'[Update Resource] Device {device}: {resource}')
+        #LOGGER.info(f'[Update Resource] Device {device}: {resource}')
 
 
     def get_scheduler_resource(self):

@@ -295,6 +295,10 @@ class CloudEdgeEnv():
         total_time_sum = sum([task["total_time"] for task in top_n_tasks])
         avg_total_time = total_time_sum / n if n > 0 else 0
 
+        print(top_n_tasks[0]['task_id'])
+        print(top_n_tasks[1]['task_id'])
+        print(top_n_tasks[2]['task_id'])
+
         reward = -avg_total_time + 1
 
         return reward

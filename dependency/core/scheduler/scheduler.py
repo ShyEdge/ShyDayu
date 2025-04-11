@@ -94,6 +94,10 @@ class Scheduler:
             agent = self.schedule_table[source_id]
             agent.update_resource(device, resource, self.resource_table)
 
+        #硬编码
+        if device == 'edge3':
+            LOGGER.info(f'[Update Resource table:] {self.resource_table}')
+
         #LOGGER.info(f'[Update Resource] Device {device}: {resource}')
 
 

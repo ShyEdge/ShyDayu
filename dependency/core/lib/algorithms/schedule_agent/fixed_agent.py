@@ -69,7 +69,7 @@ class FixedAgent(BaseAgent, abc.ABC):
         self.last_delay = scenario['delay']
 
 
-    def update_resource(self, device, resource):
+    def update_resource(self, device, resource, resource_table):
         pass
 
     def update_policy(self, policy):

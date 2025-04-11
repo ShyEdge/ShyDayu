@@ -30,6 +30,7 @@ class PPOAgent(BaseAgent, abc.ABC):
         pipeline = info['pipeline']
                         
         execute_device = self.env.get_selected_device()
+        print(f"agent_id {self.agent_id} task execute_device is {execute_device} ")
         
         # 修改Pipeline的内容，注意后者必须用[:1]这种，而不能用[0]，会报错
         pipeline = [{**p, 'execute_device': execute_device[0]} for p in pipeline[:1]] + \

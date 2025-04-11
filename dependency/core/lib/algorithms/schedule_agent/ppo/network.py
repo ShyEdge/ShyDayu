@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import random, time
 from collections import deque, OrderedDict
+from copy import deepcopy
 from . import rl_utils
 
 
@@ -164,20 +165,21 @@ class StateBuffer:
     def get_state_vector(self):
         """将 deque 数据转换为 2D NumPy 数组"""
         return np.array([
-            #list(self.cpu_local),
-            #list(self.cpu_other),
-            list(self.bandwidth_edge_local),
-            list(self.bandwidth_edge_other),
-            #list(self.last_decision),
-            #list(self.last_delay),
-            #list(self.last_task_obj_num),
-            #list(self.last_task_obj_size)
+            #list(self.cpu_local.copy()),
+            #list(self.cpu_other.copy()),
+            list(self.bandwidth_edge_local.copy()),
+            list(self.bandwidth_edge_other.copy()),
+            #list(self.last_decision.copy()),
+            #list(self.last_delay.copy()),
+            #list(self.last_task_obj_num.copy()),
+            #list(self.last_task_obj_size.copy())
         ])
     
     def get_reward_info(self):
         tasks_eval_list = []
+        tasks = deepcopy(self.tasks) # deepcopy,避免print出来的id出现重复
 
-        for task in self.tasks:
+        for task in tasks:
             task_id = task.get_task_id()
             task_total_time = task.calculate_total_time()
             task_cloud_edge_transmit_time = task.calculate_cloud_edge_transmit_time()
@@ -188,10 +190,14 @@ class StateBuffer:
                 "cloud_edge_transmit_time": task_cloud_edge_transmit_time
             })
 
-        # 按 task_id 从大到小排序
-        sorted_tasks_eval_list = sorted(tasks_eval_list, key=lambda x: x["task_id"], reverse=True)
+        for task_info in tasks_eval_list:
+            print(task_info["task_id"])
 
-        return sorted_tasks_eval_list
+        return tasks_eval_list
+
+        # 按 task_id 从大到小排序
+        #sorted_tasks_eval_list = sorted(tasks_eval_list, key=lambda x: x["task_id"], reverse=True)
+        #return sorted_tasks_eval_list
 
 
 class CloudEdgeEnv():
@@ -233,7 +239,7 @@ class CloudEdgeEnv():
             raise ValueError("Invalid action")
         
         #做出决策后等待一段时间
-        time.sleep(1)
+        time.sleep(3)
 
         new_state = self.get_new_state() 
 
@@ -288,19 +294,11 @@ class CloudEdgeEnv():
         return done
 
     def compute_reward(self):
-        sorted_tasks_eval_list = self.state_buffer.get_reward_info()
+        tasks_eval_list = self.state_buffer.get_reward_info()
 
-        n = 3
-        top_n_tasks = sorted_tasks_eval_list[:n]  
-        total_time_sum = sum([task["total_time"] for task in top_n_tasks])
-        avg_total_time = total_time_sum / n if n > 0 else 0
+        total_time_sum = sum([task["total_time"] for task in tasks_eval_list])
 
-        if len(top_n_tasks) > 0:
-            print(top_n_tasks[0]['task_id'])
-        if len(top_n_tasks) > 1:
-            print(top_n_tasks[1]['task_id'])
-        if len(top_n_tasks) > 2:
-            print(top_n_tasks[2]['task_id'])
+        avg_total_time = total_time_sum / len(tasks_eval_list) if tasks_eval_list else 0
 
         reward = -avg_total_time + 1
 

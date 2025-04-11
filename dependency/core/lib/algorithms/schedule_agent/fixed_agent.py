@@ -14,10 +14,13 @@ class FixedAgent(BaseAgent, abc.ABC):
         self.agent_id = agent_id
         self.cloud_device = system.cloud_device
         self.fixed_policy = fixed_policy
+
+        '''
         self.last_delay = 0
         self.sum_delay = 0
         self.delay_list = []
         self.cnt = 50
+        '''
 
     def get_schedule_plan(self, info):
         if self.fixed_policy is None:
@@ -29,6 +32,7 @@ class FixedAgent(BaseAgent, abc.ABC):
         pipe_seg = policy['pipeline']
         pipeline = info['pipeline']
         
+        '''
         if edge_device=='edge3':
             if random.random() < 0.5:
                 pipeline = [{**p, 'execute_device': 'edge3'} for p in pipeline[:pipe_seg]] + \
@@ -40,8 +44,12 @@ class FixedAgent(BaseAgent, abc.ABC):
         else:
             pipeline = [{**p, 'execute_device': cloud_device} for p in pipeline[:pipe_seg]] + \
                         [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]   
+        '''
 
-            
+        pipeline = [{**p, 'execute_device': edge_device} for p in pipeline[:pipe_seg]] + \
+                        [{**p, 'execute_device': cloud_device} for p in pipeline[pipe_seg:]]    
+
+        '''
         self.sum_delay += self.last_delay
         self.cnt -= 1
 
@@ -50,6 +58,8 @@ class FixedAgent(BaseAgent, abc.ABC):
             self.cnt = 50
             self.sum_delay = 0
             print(self.delay_list)
+        '''
+            
 
         policy.update({'pipeline': pipeline})
         return policy
@@ -58,6 +68,7 @@ class FixedAgent(BaseAgent, abc.ABC):
         pass
 
     def update_scenario(self, scenario):
+        '''
         if scenario is None:
             self.last_delay = 1  
             return 
@@ -67,8 +78,10 @@ class FixedAgent(BaseAgent, abc.ABC):
             return 
             
         self.last_delay = scenario['delay']
+        '''
+        pass
 
-
+    
     def update_resource(self, device, resource, resource_table):
         pass
 

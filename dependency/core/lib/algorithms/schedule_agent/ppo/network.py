@@ -192,8 +192,8 @@ class StateBuffer:
                 "cloud_edge_transmit_time": task_cloud_edge_transmit_time
             })
 
-        for task_info in tasks_eval_list:
-            print(task_info["task_id"])
+        #for task_info in tasks_eval_list:
+        #    print(task_info["task_id"])
 
         return tasks_eval_list
 

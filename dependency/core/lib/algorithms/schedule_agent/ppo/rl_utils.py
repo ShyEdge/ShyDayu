@@ -89,18 +89,24 @@ def compute_advantage(gamma, lmbda, td_delta):
                 
 def train_on_policy_agent_CloudEdge(env, agent, num_episodes):
 
-    state = env.reset()  
     for i in range(num_episodes):
+        state = env.reset() 
         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
         done = False
-
         while not done:
             action = agent.take_action(state)
-            next_state, reward, done, _ = env.step(action)
+            next_state, _ , done, _ = env.step(action)
             transition_dict['states'].append(state)
             transition_dict['actions'].append(action)
             transition_dict['next_states'].append(next_state)
-            transition_dict['rewards'].append(reward)
+            #transition_dict['rewards'].append(reward)
             transition_dict['dones'].append(done)
             state = next_state
+        transition_dict['rewards'] = env.get_rl_rewards()
+        
+        #检查dict各项长度是否一样
+        lengths = [len(transition_dict[key]) for key in transition_dict]
+        if len(set(lengths)) != 1:
+            raise ValueError(f"Lengths of transition_dict items are inconsistent: {lengths}")
+
         agent.update(transition_dict)

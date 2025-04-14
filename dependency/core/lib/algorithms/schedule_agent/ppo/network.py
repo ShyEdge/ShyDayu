@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import random, time
+import random, time, bisect
 from collections import deque, OrderedDict
 from copy import deepcopy
 from . import rl_utils
@@ -150,7 +150,7 @@ class StateBuffer:
         self.last_task_obj_num = deque(maxlen=maxlen)
         self.last_task_obj_size = deque(maxlen=maxlen)
         
-        self.tasks = deque(maxlen=maxlen)
+        self.tasks = deque()
 
         for _ in range(maxlen):
             self.cpu_local.append(0)
@@ -183,9 +183,11 @@ class StateBuffer:
             task_id = task.get_task_id()
             task_total_time = task.calculate_total_time()
             task_cloud_edge_transmit_time = task.calculate_cloud_edge_transmit_time()
+            task_tmp_data = task.get_tmp_data()
 
             tasks_eval_list.append({
                 "task_id": task_id,
+                "start_time": task_tmp_data['total_start_time'],
                 "total_time": task_total_time,
                 "cloud_edge_transmit_time": task_cloud_edge_transmit_time
             })
@@ -216,8 +218,16 @@ class CloudEdgeEnv():
         self.maxlen = 3
 
         self.state_buffer = StateBuffer(maxlen=self.maxlen)
+        self.policys_start_time = []  #记录策略开始时间戳
+        self.rl_tasks = [[] for _ in range(self.max_count)]  
+        self.rl_rewards = []
+
 
     def reset(self):
+        self.policys_start_time.clear()
+        for sublist in self.rl_tasks:
+            sublist.clear()
+        self.rl_rewards.clear()
         return self.state_buffer.get_state_vector()
 
     def step(self, action):   
@@ -238,16 +248,20 @@ class CloudEdgeEnv():
         else:
             raise ValueError("Invalid action")
         
+        #记录时间戳
+        policy_start_time = time.time()
+        self.policys_start_time.append(policy_start_time)
+    
         #做出决策后等待一段时间
         time.sleep(3)
 
         new_state = self.get_new_state() 
 
-        reward = self.compute_reward()
+        self.assign_tasks_to_windows()
 
         done = self.check_done()   
 
-        return new_state, reward, done, {}  
+        return new_state, {}, done, {}  
 
     def set_local_edge(self, local_edge):
         self.local_edge = local_edge
@@ -291,8 +305,56 @@ class CloudEdgeEnv():
         done = self.task_count >= self.max_count
         if done:
             self.task_count = 0
+            self.compute_rewards()
+            self.print_task_ids_by_window()
         return done
 
+    def assign_tasks_to_windows(self):
+        tasks_eval_list = self.state_buffer.get_reward_info()
+
+        for task in tasks_eval_list:
+            start_time = task["start_time"]
+
+            if start_time >= self.policys_start_time[-1]:
+                index = len(self.policys_start_time) - 1
+            else:
+                idx = bisect.bisect_right(self.policys_start_time, start_time)
+                if idx == 0:
+                    # 如果 start_time 小于所有策略的开始时间，跳过该任务
+                    continue
+                else:
+                    # idx - 1 是 start_time 所在的区间的开始时间的索引
+                    index = idx - 1
+
+            # 将任务 append 到对应位置
+            self.rl_tasks[index].append(task)  # 这里将 task 添加到对应的策略区间
+
+        self.state_buffer.tasks.clear()    
+
+
+    def compute_rewards(self):
+        for task_list in self.rl_tasks:
+            if task_list:
+                # 计算每个任务的负时延奖励：-total_time + 1
+                rewards = [-task["total_time"] + 1 for task in task_list]
+                avg_reward = sum(rewards) / len(rewards)
+            else:
+                avg_reward = 0.0  # 没有任务时设为 0 奖励
+
+            self.rl_rewards.append(avg_reward)
+
+ 
+    def print_task_ids_by_window(self):
+        for i, task_list in enumerate(self.rl_tasks):
+            if task_list:
+                task_ids = [task["task_id"] for task in task_list]
+                print(f"策略窗口 {i} 包含任务 ID: {task_ids}")
+            else:
+                print(f"策略窗口 {i} 没有任务")
+
+
+
+    '''
     def compute_reward(self):
         tasks_eval_list = self.state_buffer.get_reward_info()
 
@@ -303,6 +365,7 @@ class CloudEdgeEnv():
         reward = -avg_total_time + 1
 
         return reward
+    '''
 
 
     def update_resource_state(self, resource_table):
@@ -360,6 +423,11 @@ class CloudEdgeEnv():
 
     def update_tasks(self, task):
         self.state_buffer.tasks.append(task)
+
+    def get_rl_rewards(self):
+        return self.rl_rewards
+
+
 
 def train_ppo_on_policy(env):
     actor_lr = 1e-3

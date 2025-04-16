@@ -88,9 +88,9 @@ class PPO:
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
         
-        #print(f"states is {states}")
-        #print(f"actions is {actions}")
-        #print(f"rewards is {rewards}")
+        print(f"states is {states}")
+        print(f"actions is {actions}")
+        print(f"rewards is {rewards}")
 
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -
                                                                        dones)
@@ -432,7 +432,7 @@ class CloudEdgeEnv():
                         print(f"第{i}个task给予额外bonus")
 
                 self.rl_rewards[i] += bonus
-                                            
+
  
     def print_task_ids_by_window(self):
         for i, task_list in enumerate(self.rl_tasks):

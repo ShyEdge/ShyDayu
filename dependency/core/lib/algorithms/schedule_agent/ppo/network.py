@@ -42,7 +42,6 @@ class ValueNet(nn.Module):
         x = F.relu(self.fc(x))
         return self.out(x)
 
-
 class PPO:
     ''' PPO算法,采用截断方式 '''
     def __init__(self, state_dim, hidden_dim, history_length, action_dim, actor_lr, critic_lr,
@@ -89,9 +88,9 @@ class PPO:
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
         
-        print(f"states is {states}")
-        print(f"actions is {actions}")
-        print(f"rewards is {rewards}")
+        #print(f"states is {states}")
+        #print(f"actions is {actions}")
+        #print(f"rewards is {rewards}")
 
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -
                                                                        dones)
@@ -136,7 +135,6 @@ class PPO:
             self.actor_optimizer.step()
             self.critic_optimizer.step()
         
-
 class StateBuffer:
     def __init__(self, maxlen=3):
         self.maxlen = maxlen 
@@ -147,6 +145,8 @@ class StateBuffer:
         self.bandwidth_edge_other = deque(maxlen=maxlen)
         self.last_decision = deque(maxlen=maxlen)
         self.last_delay = deque(maxlen=maxlen)
+        self.last_execute_time = deque(maxlen=maxlen)
+        self.last_trans_time = deque(maxlen=maxlen)
         self.last_task_obj_num = deque(maxlen=maxlen)
         self.last_task_obj_size = deque(maxlen=maxlen)
         
@@ -159,6 +159,8 @@ class StateBuffer:
             self.bandwidth_edge_other.append(0)
             self.last_decision.append(0)
             self.last_delay.append(0)
+            self.last_execute_time.append(0)
+            self.last_trans_time.append(0)
             self.last_task_obj_num.append(0)  
             self.last_task_obj_size.append(0)  
 
@@ -171,9 +173,26 @@ class StateBuffer:
             list(self.bandwidth_edge_other.copy()),
             #list(self.last_decision.copy()),
             #list(self.last_delay.copy()),
+            list(self.last_execute_time.copy()),
+            list(self.last_trans_time.copy()),
             list(self.last_task_obj_num.copy()),
             #list(self.last_task_obj_size.copy())
         ])
+    
+    def get_state_dict(self):
+        return {
+            #"cpu_local": list(self.cpu_local.copy()),
+            #"cpu_other": list(self.cpu_other.copy()),
+            "bandwidth_edge_local": list(self.bandwidth_edge_local.copy()),
+            "bandwidth_edge_other": list(self.bandwidth_edge_other.copy()),
+            #"last_decision": list(self.last_decision.copy()),
+            #"last_delay": list(self.last_delay.copy()),
+            "last_execute_time": list(self.last_execute_time.copy()),
+            "last_trans_time": list(self.last_trans_time.copy()),
+            "last_task_obj_num": list(self.last_task_obj_num.copy()),
+            #"last_task_obj_size": list(self.last_task_obj_size.copy()),
+        }
+
     
     def get_reward_info(self):
         tasks_eval_list = []
@@ -189,17 +208,11 @@ class StateBuffer:
                 "task_id": task_id,
                 "start_time": task_tmp_data['total_start_time'],
                 "total_time": task_total_time,
-                "cloud_edge_transmit_time": task_cloud_edge_transmit_time
+                "cloud_edge_transmit_time": task_cloud_edge_transmit_time,
+                "execute_time": task_total_time - task_cloud_edge_transmit_time
             })
 
-        #for task_info in tasks_eval_list:
-        #    print(task_info["task_id"])
-
         return tasks_eval_list
-
-        # 按 task_id 从大到小排序
-        #sorted_tasks_eval_list = sorted(tasks_eval_list, key=lambda x: x["task_id"], reverse=True)
-        #return sorted_tasks_eval_list
 
 
 class CloudEdgeEnv():
@@ -221,6 +234,7 @@ class CloudEdgeEnv():
         self.policys_start_time = []  #记录策略开始时间戳
         self.rl_tasks = [[] for _ in range(self.max_count)]  
         self.rl_rewards = []
+        self.rl_states = []
 
 
     def reset(self):
@@ -228,7 +242,10 @@ class CloudEdgeEnv():
         for sublist in self.rl_tasks:
             sublist.clear()
         self.rl_rewards.clear()
-        return self.state_buffer.get_state_vector()
+        self.rl_states.clear()
+
+        self.rl_states.append(self.state_buffer.get_state_dict())
+        return self.get_new_state()
 
     def step(self, action):   
         selected_edge = random.choice(self.other_edges)
@@ -255,11 +272,16 @@ class CloudEdgeEnv():
         #做出决策后等待一段时间
         time.sleep(3)
 
-        new_state = self.get_new_state() 
+        new_state = self.get_new_state()
+        self.rl_states.append(self.state_buffer.get_state_dict())  
 
         self.assign_tasks_to_windows()
 
-        done = self.check_done()   
+        done = self.check_done()
+
+        # 如果是 episode 结束，pop 掉最后一个 next_state
+        if done and self.rl_states:
+            self.rl_states.pop()    
 
         return new_state, {}, done, {}  
 
@@ -341,8 +363,76 @@ class CloudEdgeEnv():
             else:
                 avg_reward = 0.0  # 没有任务时设为 0 奖励
 
-            self.rl_rewards.append(avg_reward)
+            self.rl_rewards.append(max(avg_reward, -5))
 
+        self.auxiliary_reward() #辅助奖励
+        
+
+    def auxiliary_reward(self):
+        train_paras =self.train_parameters
+        task_transmit_time_list = []
+        task_execute_time_list = []
+        state_bandwidth_list = []
+        state_trans_time_list = []
+        state_execute_time_list = []
+        
+        for task_list in self.rl_tasks:
+            if task_list:
+                exec_times = [task["execute_time"] for task in task_list]
+                trans_times = [task["cloud_edge_transmit_time"] for task in task_list]
+
+                avg_exec_time = sum(exec_times) / len(exec_times)
+                avg_trans_time = sum(trans_times) / len(trans_times)
+            else:
+                avg_exec_time = 0.0
+                avg_trans_time = 0.0
+
+            task_execute_time_list.append(avg_exec_time)
+            task_transmit_time_list.append(avg_trans_time)
+
+
+        for state_dict in self.rl_states:
+            if state_dict:
+                bw_list = state_dict.get("bandwidth_edge_local", [])
+                last_exec_list = state_dict.get("last_execute_time", [])
+                last_trans_list = state_dict.get("last_trans_time", [])
+
+                # 计算平均值（注意防止空列表）
+                avg_bw = sum(bw_list) / len(bw_list) if bw_list else 0.0
+                avg_last_exec = sum(last_exec_list) / len(last_exec_list) if last_exec_list else 0.0
+                avg_last_trans = sum(last_trans_list) / len(last_trans_list) if last_trans_list else 0.0
+
+            else:
+                avg_bw = 0.0
+                avg_last_exec = 0.0
+                avg_last_trans= 0.0
+
+            state_bandwidth_list.append(avg_bw)
+            state_execute_time_list.append(avg_last_exec)
+            state_trans_time_list.append(avg_last_trans)
+
+        if len(state_bandwidth_list) == len(state_execute_time_list) == len(state_trans_time_list) == len(task_transmit_time_list) == len(task_execute_time_list):
+            for i in range(len(state_bandwidth_list)):
+                bw = state_bandwidth_list[i]
+                state_exec = state_execute_time_list[i]
+                state_trans = state_trans_time_list[i]
+                task_trans = task_transmit_time_list[i]
+                task_exec = task_execute_time_list[i]
+
+                if task_trans==0 and task_exec==0:
+                    continue
+                
+                bonus = 0.0
+                #避免冤枉好的策略 更侧重当前 之后出问题应该之后的决策背锅
+                #exec看趋势
+                if task_exec > train_paras["exec_time_threshold"] and state_exec!=0:
+                    exec_ratio = task_exec / state_exec
+                    if exec_ratio < train_paras["exec_ratio_threshold"] and exec_ratio!=0:
+                        bonus = train_paras["exec_bonus_baseline"] / exec_ratio
+                        print(f"第{i}个task给予额外bonus")
+
+                self.rl_rewards[i] += bonus
+                                            
  
     def print_task_ids_by_window(self):
         for i, task_list in enumerate(self.rl_tasks):
@@ -351,22 +441,6 @@ class CloudEdgeEnv():
                 print(f"策略窗口 {i} 包含任务 ID: {task_ids}")
             else:
                 print(f"策略窗口 {i} 没有任务")
-
-
-
-    '''
-    def compute_reward(self):
-        tasks_eval_list = self.state_buffer.get_reward_info()
-
-        total_time_sum = sum([task["total_time"] for task in tasks_eval_list])
-
-        avg_total_time = total_time_sum / len(tasks_eval_list) if tasks_eval_list else 0
-
-        reward = -avg_total_time + 1
-
-        return reward
-    '''
-
 
     def update_resource_state(self, resource_table):
         local_edge_cpu, other_edge_cpu = self.extract_cpu_state(resource_table)
@@ -405,6 +479,12 @@ class CloudEdgeEnv():
     def update_delay(self, value):
         self.state_buffer.last_delay.append(value)
 
+    def update_trans_time(self, value):
+        self.state_buffer.last_trans_time.append(value)
+
+    def update_execute_time(self, value):
+        self.state_buffer.last_execute_time.append(value)
+
     def update_task_obj_num(self, value):
         if isinstance(value, list) and len(value) > 0:
             avg = sum(value) / len(value)
@@ -423,6 +503,11 @@ class CloudEdgeEnv():
 
     def update_tasks(self, task):
         self.state_buffer.tasks.append(task)
+        task_total_time = task.calculate_total_time()
+        task_cloud_edge_transmit_time = task.calculate_cloud_edge_transmit_time()
+        task_execute_time = task_total_time - task_cloud_edge_transmit_time
+        self.update_execute_time(task_execute_time)
+        self.update_trans_time(task_cloud_edge_transmit_time)
 
     def get_rl_rewards(self):
         return self.rl_rewards
@@ -441,7 +526,7 @@ def train_ppo_on_policy(env):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
         "cpu")
 
-    state_dim = 3
+    state_dim = 5
     history_length = 3
     action_dim = 6
 

@@ -26,7 +26,9 @@ pod-template:
               "edge8": "edge8",
             },
             "train_parameters": {
-              "reward_c": 1.0,
+              "exec_time_threshold": 5,
+              "exec_ratio_threshold": 0.6,
+              "exec_bonus_baseline": 1,
             }
 
           }

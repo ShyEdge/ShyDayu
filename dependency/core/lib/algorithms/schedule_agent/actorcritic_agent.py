@@ -3,17 +3,16 @@ import abc
 from core.lib.common import ClassFactory, ClassType, Context
 
 from .base_agent import BaseAgent
-from .actor_critic.network import CloudEdgeEnv, train_actorcritic_on_policy
 
 __all__ = ('ActorCriticAgent',)
-
-
 
 
 @ClassFactory.register(ClassType.SCH_AGENT, alias='actorcritic')
 class ActorCriticAgent(BaseAgent, abc.ABC):
 
     def __init__(self, system, agent_id: int, actorcritic_policy: dict = None):
+        from .actor_critic.network import CloudEdgeEnv
+
         self.agent_id = agent_id
         self.cloud_device = system.cloud_device
         self.actorcritic_policy = actorcritic_policy
@@ -67,6 +66,7 @@ class ActorCriticAgent(BaseAgent, abc.ABC):
 
 
     def run(self):
+        from .actor_critic.network import train_actorcritic_on_policy
         train_actorcritic_on_policy(self.env)
 
     def update_scenario(self, scenario):

@@ -2,7 +2,6 @@ import abc, time
 from core.lib.common import ClassFactory, ClassType, Context
 
 from .base_agent import BaseAgent
-from .ppo.network import CloudEdgeEnv, train_ppo_on_policy
 
 __all__ = ('PPOAgent',)
 
@@ -11,6 +10,8 @@ __all__ = ('PPOAgent',)
 class PPOAgent(BaseAgent, abc.ABC):
 
     def __init__(self, system, agent_id: int, ppo_policy: dict = None):
+        from .ppo.network import CloudEdgeEnv
+
         self.agent_id = agent_id
         self.ppo_policy = ppo_policy
         self.local_device = None
@@ -42,6 +43,7 @@ class PPOAgent(BaseAgent, abc.ABC):
 
 
     def run(self):
+        from .ppo.network import train_ppo_on_policy
         train_ppo_on_policy(self.env)
 
     def update_scenario(self, scenario):

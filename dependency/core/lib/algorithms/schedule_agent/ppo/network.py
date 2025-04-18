@@ -173,9 +173,9 @@ class StateBuffer:
             list(self.bandwidth_edge_other.copy()),
             #list(self.last_decision.copy()),
             #list(self.last_delay.copy()),
-            list(self.last_execute_time.copy()),
-            list(self.last_trans_time.copy()),
-            list(self.last_task_obj_num.copy()),
+            #list(self.last_execute_time.copy()),
+            #list(self.last_trans_time.copy()),
+            #list(self.last_task_obj_num.copy()),
             #list(self.last_task_obj_size.copy())
         ])
     
@@ -526,7 +526,7 @@ def train_ppo_on_policy(env):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
         "cpu")
 
-    state_dim = 5
+    state_dim = 2
     history_length = 3
     action_dim = 6
 

@@ -473,10 +473,11 @@ class CloudEdgeEnv():
         self.state_buffer.bandwidth_edge_other.append(value)
 
     def update_decision(self, value):
-        value /= 5
+        value /= 6
         self.state_buffer.last_decision.append(value)
 
     def update_delay(self, value):
+        value /= 50
         self.state_buffer.last_delay.append(value)
 
     def update_trans_time(self, value):
@@ -491,7 +492,7 @@ class CloudEdgeEnv():
         else:
             avg = 0
 
-        avg /= 10
+        avg /= 20
         self.state_buffer.last_task_obj_num.append(avg)
 
     def update_task_obj_size(self, value):

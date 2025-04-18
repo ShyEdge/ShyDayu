@@ -227,7 +227,7 @@ class CloudEdgeEnv():
         self.selected_device = [self.local_edge, self.local_edge]      
 
         self.task_count = 0
-        self.max_count = 100
+        self.max_count = 30
         self.maxlen = 8  #注意要修改这里
 
         self.state_buffer = StateBuffer(maxlen=self.maxlen)

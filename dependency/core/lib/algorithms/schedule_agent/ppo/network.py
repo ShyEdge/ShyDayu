@@ -228,7 +228,7 @@ class CloudEdgeEnv():
 
         self.task_count = 0
         self.max_count = 20
-        self.maxlen = 3
+        self.maxlen = 8  #注意要修改这里
 
         self.state_buffer = StateBuffer(maxlen=self.maxlen)
         self.policys_start_time = []  #记录策略开始时间戳

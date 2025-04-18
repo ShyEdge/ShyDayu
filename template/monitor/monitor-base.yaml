@@ -4,7 +4,7 @@ pod-template:
   imagePullPolicy: Always
   env:
     - name: INTERVAL
-      value: "10"
+      value: "5"
     - name: MONITORS
       value: "['cpu', 'memory', 'bandwidth']"
 port-open:

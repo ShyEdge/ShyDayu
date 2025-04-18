@@ -227,7 +227,7 @@ class CloudEdgeEnv():
         self.selected_device = [self.local_edge, self.local_edge]      
 
         self.task_count = 0
-        self.max_count = 20
+        self.max_count = 100
         self.maxlen = 8  #注意要修改这里
 
         self.state_buffer = StateBuffer(maxlen=self.maxlen)
@@ -365,7 +365,7 @@ class CloudEdgeEnv():
 
             self.rl_rewards.append(max(avg_reward, -5))
 
-        self.auxiliary_reward() #辅助奖励
+        #self.auxiliary_reward() #辅助奖励
         
 
     def auxiliary_reward(self):
@@ -518,7 +518,7 @@ class CloudEdgeEnv():
 def train_ppo_on_policy(env):
     actor_lr = 1e-3
     critic_lr = 1e-2
-    num_episodes = 500
+    num_episodes = 2000
     hidden_dim = 128
     gamma = 0.98
     lmbda = 0.95

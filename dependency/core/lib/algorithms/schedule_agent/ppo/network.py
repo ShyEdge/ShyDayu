@@ -136,7 +136,7 @@ class PPO:
             self.critic_optimizer.step()
         
 class StateBuffer:
-    def __init__(self, maxlen=3):
+    def __init__(self, maxlen=8):
         self.maxlen = maxlen 
         
         self.cpu_local = deque(maxlen=maxlen)
@@ -167,16 +167,16 @@ class StateBuffer:
     def get_state_vector(self):
         """将 deque 数据转换为 2D NumPy 数组"""
         return np.array([
-            #list(self.cpu_local.copy()),
-            #list(self.cpu_other.copy()),
+            list(self.cpu_local.copy()),
+            list(self.cpu_other.copy()),
             list(self.bandwidth_edge_local.copy()),
             list(self.bandwidth_edge_other.copy()),
-            #list(self.last_decision.copy()),
-            #list(self.last_delay.copy()),
+            list(self.last_decision.copy()),
+            list(self.last_delay.copy()),
             #list(self.last_execute_time.copy()),
             #list(self.last_trans_time.copy()),
-            #list(self.last_task_obj_num.copy()),
-            #list(self.last_task_obj_size.copy())
+            list(self.last_task_obj_num.copy()),
+            list(self.last_task_obj_size.copy())
         ])
     
     def get_state_dict(self):
@@ -526,8 +526,8 @@ def train_ppo_on_policy(env):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
         "cpu")
 
-    state_dim = 2
-    history_length = 3
+    state_dim = 8
+    history_length = 8
     action_dim = 6
 
     agent = PPO(state_dim, hidden_dim, history_length, action_dim, actor_lr, critic_lr, lmbda,

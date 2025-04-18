@@ -465,11 +465,11 @@ class CloudEdgeEnv():
         self.state_buffer.cpu_other.append(value)
 
     def update_bandwidth_local(self, value):
-        value /= 100
+        value /= 5
         self.state_buffer.bandwidth_edge_local.append(value)
 
     def update_bandwidth_other(self, value):
-        value /= 100
+        value /= 5
         self.state_buffer.bandwidth_edge_other.append(value)
 
     def update_decision(self, value):

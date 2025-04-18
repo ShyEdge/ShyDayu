@@ -50,7 +50,7 @@ class BandwidthMonitor(BaseMonitor, abc.ABC):
         if self.is_server:
             return 0
 
-        @timeout(4)  #原始值是2
+        @timeout(8)  #原始值是2
         def fetch_bandwidth_by_iperf3():
             result = client.run()
             return result
